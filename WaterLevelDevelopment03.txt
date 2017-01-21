@@ -3,25 +3,23 @@
         water level sensor analog output, converts it to a voltage, thresholds the voltage to detect
         a water leak condition, integrates the thresholds to filter out false readings and introduce
         some hysteresis into the alarm/reset process, and indicate the alarm.  The program uses a non-blocking
-        delay to loop once every 2 seconds for testing purposes only.  Normally, a short delay (e.g. 1 ms)
+        delay to loop once every 2 seconds for testing purposes only.  Normally, a short delay (e.g. 2 ms)
         should be used between water level sensor readings.  
         
-        This version of the code supports both an alarm and an indocator.  The indicator turns on and off
-        based solely upon the threshold hysteresis.  The alrm also turn on and off based upon the
-        threshold hysteresis, but also mutes when a pushbuttonis pressed and stayes muted until the
+        This version of the code supports both an alarm and an indicator.  The indicator turns on and off
+        based solely upon the threshold hysteresis.  The alarm also turns on and off based upon the
+        threshold hysteresis, but also mutes when a pushbutton is pressed and stays muted until the
         alarm indication is cleared.
         
-        This version of code also also includes a diff()
-        function for computing time differences using millis(), for later use in non-blocking delay
-        functionality.
+        This version of code also also includesa diff() function for computing time differences using 
+        millis(), for use in non-blocking delay functionality.
         
         YET TO DO:  the following needs to be added and tested to fully implement water level sensing:
-        1.  debounce the push button (a niceity in this application, but good in the long term)
-        2.  pulse the alarm for bettwe effect
-        3.  light the indicator when no alarming but flash the indocator when alarming.
-        4.  add support for a seconds water level sensor
+        1.  pulse the alarm for better effect
+        2.  light the indicator when not alarming, but flash the indicator when alarming.
+        3.  add support for a second water level sensor
         
-    author: Bob Glicksman, 01/20/2017
+    author: Bob Glicksman, 01/21/2017
     
     (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
 ***********************************************************************************************************/
@@ -95,7 +93,7 @@ void loop() {
     
 } // end of loop()
 
-/* alarmIntegrator():  function that thresholds sensor voltage readings and integrates the vlaues.
+/* alarmIntegrator():  function that thresholds sensor voltage readings and integrates the values.
     parameters:
         sensorReading - the sensor voltage reading to be thresholded and integrated
     return:
@@ -184,11 +182,40 @@ boolean nbWaterMeasureInterval(unsigned long delayTime) {
         flag that indicates the push button status
 */
 boolean readPushButton() {
-    // NOTE: this code works but does not debounce.  Add in debouncing
+    const unsigned long DEBOUNCE_TIME = 10;  // 10 milliseconds
+    
+    // state variable states
+    const byte OFF = 0;
+    const byte DEBOUNCING = 1;
+    const byte DEBOUNCED = 2;
+    
+    static byte lastState = OFF;
+    static unsigned long beginTime;
     
     if(digitalRead(BUTTON_PIN) == LOW) {  // button has been pressed
-        return true;
-    } else {
+        switch (lastState) {
+            case OFF:       // new button press
+                beginTime = millis();
+                lastState = DEBOUNCING;
+                return false;
+                break;
+            case DEBOUNCING:    // wait until debouncing time is over
+                if(diff(millis(), beginTime) < DEBOUNCE_TIME) {
+                    return false;
+                } else {
+                    lastState = DEBOUNCED;
+                    return true;
+                }
+                break;
+            case DEBOUNCED:     // stay in this state until button is released
+                return false;
+                break;
+            default:
+                return false;
+        }
+        
+    } else {        // the button has been released
+        lastState = OFF;
         return false;
     }
 }  // end of readPushButton
