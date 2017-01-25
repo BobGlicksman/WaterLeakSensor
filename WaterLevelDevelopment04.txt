@@ -38,8 +38,7 @@ const int BUTTON_PIN = D4;
 const float WATER_LEVEL_THRESHOLD = 0.5;    // 0.5 volts or higher on sensor triggers alarm
 
 // Globals
-boolean ledState = false;
-boolean alarm = false;      // state of water level alarm condition
+boolean ledState = false;   // D7 LED is used for indicating water level measurements
 
 // setup()
 void setup() {
