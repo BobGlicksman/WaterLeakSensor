@@ -16,7 +16,9 @@
         condition is cleared.  The alarm is a piezo buzzer that is pulsed whenever there is an alarm
         condition and the mute pushbutton has not been pressed.
         
-        This version of code also also includesa diff() function for computing time differences using 
+        When a new alarm condition is sensed, a message to this effect is published to the cloud.
+        
+        This version of code also also includes a diff() function for computing time differences using 
         millis(), for use in non-blocking delay functionality.
         
         YET TO DO:  the following needs to be added and tested to fully implement water level sensing:
@@ -24,7 +26,7 @@
         2.  remove cloud publications for testing only and reduce water level reading interval to a few
             milliseconds instead of 2 seconds (used for testing).
         
-    author: Bob Glicksman, 01/24/2017
+    author: Bob Glicksman, 01/25/2017
     
     (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
 ***********************************************************************************************************/
@@ -54,6 +56,7 @@ void loop() {
     static boolean mute = false;  // set to true to mute the audible alarm
     static boolean indicator = false;  // set to true to flash the indicator
     static boolean alarm = false;   // set to true to sound the alarm
+    static boolean previousAlarmState = false;  // used to detect a new alarm
     
     // measure and test water level at pre-determined interval
     if(nbWaterMeasureInterval(2000) == false) {
@@ -89,6 +92,12 @@ void loop() {
             alarm = false;
             mute = false;   // reset alarm muting
         }
+        
+        //  test if new alarm and publish it
+        if((indicator == true) && (indicator != previousAlarmState)) {
+            Particle.publish("Water leak alarm", Time.timeStr(Time.now()) + " Z");
+        }
+        previousAlarmState = indicator; // update old alarm state to present state
     }
     
     // process the mute pushbutton
@@ -97,7 +106,7 @@ void loop() {
         alarm = false; // mute the alarm right now      
     }
     
-    // refreah non-blocking alarm & indocator status
+    // refresh non-blocking alarm & indicator status
     nbFlashIndicator(indicator);
     nbSoundAlarm(alarm);
     
@@ -302,4 +311,3 @@ unsigned long diff(unsigned long current, unsigned long last)  {
     }
     return difference;
 }  // end of diff()
-
