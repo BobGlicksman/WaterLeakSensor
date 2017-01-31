@@ -7630,6 +7630,7 @@ SKU: ROB-09065</description>
 <text x="99.06" y="22.86" size="1.778" layer="91">Servo</text>
 <text x="50.8" y="0" size="1.778" layer="91">Note: IC1 pin 14 to Vcc (+5 volts)</text>
 <text x="68.58" y="10.16" size="1.778" layer="91">N/C</text>
+<text x="106.68" y="111.76" size="1.778" layer="91">Piezo Buzzer</text>
 </plain>
 <instances>
 <instance part="U$1" gate="G$1" x="-7.62" y="66.04"/>
