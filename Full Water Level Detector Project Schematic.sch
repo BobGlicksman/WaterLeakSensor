@@ -7618,6 +7618,7 @@ SKU: ROB-09065</description>
 <part name="GND4" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="GND8" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="GND9" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
+<part name="R2" library="rcl" deviceset="R-US_" device="0309/12" value="4.7Kohm"/>
 </parts>
 <sheets>
 <sheet>
@@ -7662,6 +7663,7 @@ SKU: ROB-09065</description>
 <instance part="GND4" gate="1" x="76.2" y="99.06" rot="MR0"/>
 <instance part="GND8" gate="1" x="93.98" y="55.88" rot="MR0"/>
 <instance part="GND9" gate="1" x="25.4" y="76.2" rot="MR0"/>
+<instance part="R2" gate="G$1" x="20.32" y="30.48"/>
 </instances>
 <busses>
 </busses>
@@ -7809,8 +7811,9 @@ SKU: ROB-09065</description>
 <segment>
 <pinref part="U$1" gate="G$1" pin="3V3"/>
 <wire x1="10.16" y1="93.98" x2="15.24" y2="93.98" width="0.1524" layer="91"/>
-<wire x1="15.24" y1="93.98" x2="15.24" y2="25.4" width="0.1524" layer="91"/>
+<wire x1="15.24" y1="93.98" x2="15.24" y2="30.48" width="0.1524" layer="91"/>
 <pinref part="U$2" gate="G$1" pin="VDD"/>
+<wire x1="15.24" y1="30.48" x2="15.24" y2="25.4" width="0.1524" layer="91"/>
 <wire x1="15.24" y1="25.4" x2="15.24" y2="17.78" width="0.1524" layer="91"/>
 <wire x1="15.24" y1="17.78" x2="0" y2="17.78" width="0.1524" layer="91"/>
 <pinref part="J2" gate="G$1" pin="3"/>
@@ -7827,14 +7830,19 @@ SKU: ROB-09065</description>
 <wire x1="15.24" y1="25.4" x2="-48.26" y2="25.4" width="0.1524" layer="91"/>
 <junction x="-48.26" y="25.4"/>
 <junction x="15.24" y="25.4"/>
+<pinref part="R2" gate="G$1" pin="1"/>
+<junction x="15.24" y="30.48"/>
 </segment>
 </net>
 <net name="N$19" class="0">
 <segment>
 <pinref part="U$2" gate="G$1" pin="DATA"/>
 <wire x1="0" y1="15.24" x2="25.4" y2="15.24" width="0.1524" layer="91"/>
-<wire x1="25.4" y1="15.24" x2="25.4" y2="38.1" width="0.1524" layer="91"/>
+<wire x1="25.4" y1="15.24" x2="25.4" y2="30.48" width="0.1524" layer="91"/>
+<wire x1="25.4" y1="30.48" x2="25.4" y2="38.1" width="0.1524" layer="91"/>
 <wire x1="25.4" y1="38.1" x2="7.62" y2="38.1" width="0.1524" layer="91"/>
+<pinref part="R2" gate="G$1" pin="2"/>
+<junction x="25.4" y="30.48"/>
 </segment>
 </net>
 <net name="VCC" class="0">
