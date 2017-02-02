@@ -1,6 +1,6 @@
 /*********************************************************************************************************
-    WaterLevelSensor04: test program for water level sensing and thresholding.  This program reads a 
-        water level sensor analog output, converts it to a voltage, thresholds the voltage to detect
+    WaterLevelSensor05: test program for water level sensing and thresholding.  This program reads two 
+        water level sensor analog outputs, converts them to a voltage, thresholds the voltages to detect
         a water leak condition, integrates the thresholds to filter out false readings and introduce
         some hysteresis into the alarm/reset process, and indicate the alarm.  The program uses a non-blocking
         delay to loop once every 2 seconds for testing purposes only.  Normally, a short delay (e.g. 2 ms)
@@ -9,7 +9,9 @@
         This version of the code supports both an alarm and an indicator.  The indicator turns on and off
         based solely upon the threshold hysteresis.  The alarm also turns on and off based upon the
         threshold hysteresis, but also mutes when a pushbutton is pressed and stays muted until the
-        alarm indication is cleared.  
+        alarm indication is cleared.  Although two sensors are supported, there is only a single alarm
+        indication.  Either sensor can trigger the alarm and both sensors must be in the non-alarm
+        state for the alarm indication to be cleared.  
         
         The indicator is normally lit to show that the system is working.  The indicator flashes when 
         an alarm condition is detected (water level threshold) and remains flashing until the alarm 
@@ -21,23 +23,23 @@
         This version of code also also includes a diff() function for computing time differences using 
         millis(), for use in non-blocking delay functionality.
         
-        YET TO DO:  the following needs to be added and tested to fully implement water level sensing:
-        1.  add support for a second water level sensor
-        2.  remove cloud publications for testing only and reduce water level reading interval to a few
+        To Do:
+        1.  remove cloud publications for testing only and reduce water level reading interval to a few
             milliseconds instead of 2 seconds (used for testing).
         
-    author: Bob Glicksman, 01/25/2017
+    author: Bob Glicksman, 02/02/2017
     
     (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
 ***********************************************************************************************************/
 // Constants and definitions
-const int WATER_SENSOR_PIN = A0;
+const int WATER_SENSOR_A_PIN = A0;
+const int WATER_SENSOR_B_PIN = A1;
 const int LED_PIN = D7;
 const int ALARM_PIN = D6;
 const int INDICATOR_PIN = D5;
 const int BUTTON_PIN = D4;
 
-const float WATER_LEVEL_THRESHOLD = 0.5;    // 0.5 volts or higher on sensor triggers alarm
+const float WATER_LEVEL_THRESHOLD = 0.5;    // 0.5 volts or higher on either sensor triggers alarm
 
 // Globals
 boolean ledState = false;   // D7 LED is used for indicating water level measurements
@@ -69,18 +71,20 @@ void loop() {
         }
         
         // read the water level from the sensor; convert to a voltage value
-        int waterLevel;
-        float waterSensorVoltage;
+        int waterLevelA, waterLevelB;
+        float waterSensorVoltageA, waterSensorVoltageB;
         String publishedData;
         
-        waterLevel = analogRead(WATER_SENSOR_PIN);
-        waterSensorVoltage = ((float)waterLevel * 3.3) / 4095;
+        waterLevelA = analogRead(WATER_SENSOR_A_PIN);
+        waterLevelB = analogRead(WATER_SENSOR_B_PIN);
+        waterSensorVoltageA = ((float)waterLevelA * 3.3) / 4095;
+        waterSensorVoltageB = ((float)waterLevelB * 3.3) / 4095;
     
-    //    Particle.publish("Sensor Value:", String(waterLevel));
-        Particle.publish("Sensor Voltage:", String(waterSensorVoltage));  // log to the Partcile console
+         // TESTING ONLY: log to the Particle console
+        Particle.publish("Sensor Voltage:", String(waterSensorVoltageA) + ", " + String(waterSensorVoltageB)); 
         
         // integrate and threshold measurement for alarm
-        if(alarmIntegrator(waterSensorVoltage) == true) {
+        if(alarmIntegrator(waterSensorVoltageA, waterSensorVoltageB) == true) {
             indicator = true;
             if(mute == false) {
                 alarm = true;
@@ -93,7 +97,7 @@ void loop() {
             mute = false;   // reset alarm muting
         }
         
-        //  test if new alarm and publish it
+        //  For IFTTT Notification: test if new alarm and publish it
         if((indicator == true) && (indicator != previousAlarmState)) {
             Particle.publish("Water leak alarm", Time.timeStr(Time.now()) + " Z");
         }
@@ -117,50 +121,74 @@ void loop() {
         sensorReading - the sensor voltage reading to be thresholded and integrated
     return:
         the alarm value as a boolean.  The alarm value is set after 5 thresholds are accumulated
-            and stays set until 5 under-thresholds are accumulated
+            for either sensor and stays set until 5 under-thresholds are accumulated for both sensors
 */
 
-boolean alarmIntegrator(float sensorReading) {
+boolean alarmIntegrator(float sensorAReading, float sensorBReading) {
     const byte ALARM_LIMIT = 5;     // 5 thresholds are required to trigger an alarm, then 5 under thresholds
                                     //  are required to reset the alarm condition.
                                     
-    static byte integratedValue = 0;
+    static byte integratedValueA = 0; // threshold exceeded accumulator for sensor A
+    static byte integratedValueB = 0; // threshold exceeded accumulator for sensor B
     static boolean lastAlarmState = false;
-    boolean thresholdedReading;
+    boolean thresholdedReadingA;
+    boolean thresholdedReadingB;
     
-   // test to see if threshold was exceeded
-    if(sensorReading > WATER_LEVEL_THRESHOLD) {
-        thresholdedReading = true;
+   // test to see if threshold was exceeded on each sensor
+    if(sensorAReading > WATER_LEVEL_THRESHOLD) {
+        thresholdedReadingA = true;
     } else {
-        thresholdedReading = false;
+        thresholdedReadingA = false;
     }
     
-    // integrate thresholds or under thresholds
-    if(thresholdedReading == true)  {       // increment integrator 
-        if(integratedValue < ALARM_LIMIT)  {
-            integratedValue++;
+    if(sensorBReading > WATER_LEVEL_THRESHOLD) {
+        thresholdedReadingB = true;
+    } else {
+        thresholdedReadingB = false;
+    }
+    
+    // integrate thresholds or under thresholds; clamp them at ALARM_LIMIT and 0
+    if(thresholdedReadingA == true)  {       // increment integrator 
+        if(integratedValueA < ALARM_LIMIT)  {
+            integratedValueA++;
         } else {
-            integratedValue = ALARM_LIMIT;  // clamp at max value
+            integratedValueA = ALARM_LIMIT;  // clamp at max value
         }
     } else {    // thresholdedReading was false
-        if(integratedValue > 0) {           // decrement integrator
-            integratedValue--;
+        if(integratedValueA > 0) {           // decrement integrator
+            integratedValueA--;
         }  else  {
-            integratedValue = 0;    // clamp at zero
+            integratedValueA = 0;    // clamp at zero
         }
     }
     
-    Particle.publish("Integrator Value", String(integratedValue));  // test only
+    if(thresholdedReadingB == true)  {       // increment integrator 
+        if(integratedValueB < ALARM_LIMIT)  {
+            integratedValueB++;
+        } else {
+            integratedValueB = ALARM_LIMIT;  // clamp at max value
+        }
+    } else {    // thresholdedReading was false
+        if(integratedValueB > 0) {           // decrement integrator
+            integratedValueB--;
+        }  else  {
+            integratedValueB = 0;    // clamp at zero
+        }
+    }
     
-    if(integratedValue >= ALARM_LIMIT) {
+    // TEST ONLY - publish integrator values to the cloud
+    Particle.publish("Integrator Value", String(integratedValueA) + ", " + String(integratedValueB)); 
+    
+    // Determine the return value
+    if((integratedValueA >= ALARM_LIMIT) || (integratedValueB >= ALARM_LIMIT)) {    // either integrator at the limit
         lastAlarmState = true;
         return true;
     } else {
-        if(integratedValue <= 0) {
+        if((integratedValueA <= 0) && (integratedValueB <= 0)) {    // both integrators at zero
             lastAlarmState = false;
             return false;
         } else {
-            return lastAlarmState;
+            return lastAlarmState;  // in between condition, no change in alarm return value
         }
     }
 }  // end of alarmIntegrator()
@@ -175,7 +203,7 @@ void nbFlashIndicator(boolean flash) {
     static boolean lastOn = true;   // start with LED on
     static unsigned long lastTime = millis();
     
-    if(flash == true) {     // flashs the LED
+    if(flash == true) {     // flashes the LED
         if(diff(millis(), lastTime) >= FLASH_INTERVAL) { // flip the LED state
             lastOn = !lastOn;
             lastTime = millis();
@@ -184,6 +212,7 @@ void nbFlashIndicator(boolean flash) {
     } else {  // not flashing the LED
         lastOn = true;
     }
+    
     if(lastOn == true)  {
         digitalWrite(INDICATOR_PIN, HIGH);
     } else {
@@ -197,11 +226,11 @@ void nbFlashIndicator(boolean flash) {
         sound - sound the audible alarm
 */
 void nbSoundAlarm(boolean sound) {
-    const unsigned long BEEP_INTERVAL = 250; // 250 ms on and off
+    const unsigned long BEEP_INTERVAL = 50; // 50 ms on and off
     static boolean lastOn = false;   // start with alarm off
     static unsigned long lastTime = millis();
     
-    if(sound == true) {     // flashs the LED
+    if(sound == true) {     // sound the buzzer
         if(diff(millis(), lastTime) >= BEEP_INTERVAL) { // flip the buzzer state
             lastOn = !lastOn;
             lastTime = millis();
@@ -210,6 +239,7 @@ void nbSoundAlarm(boolean sound) {
     } else {  // not alarming
         lastOn = false;
     }
+    
     if(lastOn == true)  {
         digitalWrite(ALARM_PIN, HIGH);
     } else {
@@ -311,3 +341,4 @@ unsigned long diff(unsigned long current, unsigned long last)  {
     }
     return difference;
 }  // end of diff()
+
