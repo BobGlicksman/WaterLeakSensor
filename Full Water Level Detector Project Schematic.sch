@@ -7601,7 +7601,7 @@ SKU: ROB-09065</description>
 <part name="C3" library="SparkFun-Passives" deviceset="CAP" device="PTH" value="0.1 uF"/>
 <part name="GND3" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="IC1" library="74xx-us" deviceset="74*125" device="N" value="74AHCT125"/>
-<part name="S1" library="switch" deviceset="55?" device="01"/>
+<part name="MOMENTARY" library="switch" deviceset="55?" device="01"/>
 <part name="R1" library="rcl" deviceset="R-US_" device="0309/12" value="330 ohm"/>
 <part name="LED1" library="led" deviceset="LED" device="5MM"/>
 <part name="SP2" library="buzzer" deviceset="AL11P" device=""/>
@@ -7619,6 +7619,9 @@ SKU: ROB-09065</description>
 <part name="GND8" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="GND9" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="R2" library="rcl" deviceset="R-US_" device="0309/12" value="4.7Kohm"/>
+<part name="TOGGLE" library="switch" deviceset="55?" device="01"/>
+<part name="R3" library="rcl" deviceset="R-US_" device="0309/12" value="4.7Kohm"/>
+<part name="GND10" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -7631,6 +7634,8 @@ SKU: ROB-09065</description>
 <text x="50.8" y="0" size="1.778" layer="91">Note: IC1 pin 14 to Vcc (+5 volts)</text>
 <text x="68.58" y="10.16" size="1.778" layer="91">N/C</text>
 <text x="106.68" y="111.76" size="1.778" layer="91">Piezo Buzzer</text>
+<text x="114.3" y="76.2" size="1.778" layer="91">+</text>
+<text x="50.8" y="-5.08" size="1.778" layer="91">Note: IC1 pin 7 to GND</text>
 </plain>
 <instances>
 <instance part="U$1" gate="G$1" x="-7.62" y="66.04"/>
@@ -7647,7 +7652,7 @@ SKU: ROB-09065</description>
 <instance part="IC1" gate="B" x="55.88" y="48.26"/>
 <instance part="IC1" gate="C" x="55.88" y="27.94"/>
 <instance part="IC1" gate="D" x="55.88" y="10.16"/>
-<instance part="S1" gate="G$1" x="134.62" y="91.44"/>
+<instance part="MOMENTARY" gate="G$1" x="134.62" y="91.44"/>
 <instance part="R1" gate="G$1" x="83.82" y="73.66"/>
 <instance part="LED1" gate="G$1" x="119.38" y="73.66" rot="R90"/>
 <instance part="SP2" gate="G$1" x="111.76" y="104.14" rot="R270"/>
@@ -7663,8 +7668,11 @@ SKU: ROB-09065</description>
 <instance part="J5" gate="G$1" x="96.52" y="73.66"/>
 <instance part="GND4" gate="1" x="76.2" y="99.06" rot="MR0"/>
 <instance part="GND8" gate="1" x="93.98" y="55.88" rot="MR0"/>
-<instance part="GND9" gate="1" x="25.4" y="76.2" rot="MR0"/>
+<instance part="GND9" gate="1" x="22.86" y="76.2" rot="MR0"/>
 <instance part="R2" gate="G$1" x="20.32" y="30.48"/>
+<instance part="TOGGLE" gate="G$1" x="106.68" y="129.54"/>
+<instance part="R3" gate="G$1" x="50.8" y="101.6"/>
+<instance part="GND10" gate="1" x="60.96" y="93.98" rot="MR0"/>
 </instances>
 <busses>
 </busses>
@@ -7755,13 +7763,23 @@ SKU: ROB-09065</description>
 <segment>
 <pinref part="U$1" gate="G$1" pin="GND@21"/>
 <pinref part="GND9" gate="1" pin="GND"/>
-<wire x1="10.16" y1="78.74" x2="25.4" y2="78.74" width="0.1524" layer="91"/>
+<wire x1="10.16" y1="78.74" x2="22.86" y2="78.74" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="R3" gate="G$1" pin="2"/>
+<pinref part="GND10" gate="1" pin="GND"/>
+<wire x1="55.88" y1="101.6" x2="60.96" y2="101.6" width="0.1524" layer="91"/>
+<wire x1="60.96" y1="101.6" x2="60.96" y2="96.52" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$5" class="0">
 <segment>
 <pinref part="U$1" gate="G$1" pin="D6"/>
-<wire x1="10.16" y1="68.58" x2="48.26" y2="68.58" width="0.1524" layer="91"/>
+<wire x1="10.16" y1="68.58" x2="38.1" y2="68.58" width="0.1524" layer="91"/>
+<wire x1="38.1" y1="68.58" x2="48.26" y2="68.58" width="0.1524" layer="91"/>
+<wire x1="38.1" y1="68.58" x2="38.1" y2="101.6" width="0.1524" layer="91"/>
+<wire x1="38.1" y1="101.6" x2="48.26" y2="101.6" width="0.1524" layer="91"/>
+<junction x="38.1" y="68.58"/>
 </segment>
 </net>
 <net name="N$6" class="0">
@@ -7902,7 +7920,7 @@ SKU: ROB-09065</description>
 <wire x1="111.76" y1="58.42" x2="111.76" y2="71.12" width="0.1524" layer="91"/>
 <pinref part="J5" gate="G$1" pin="1"/>
 <wire x1="111.76" y1="71.12" x2="104.14" y2="71.12" width="0.1524" layer="91"/>
-<pinref part="S1" gate="G$1" pin="NO"/>
+<pinref part="MOMENTARY" gate="G$1" pin="NO"/>
 <wire x1="139.7" y1="88.9" x2="139.7" y2="58.42" width="0.1524" layer="91"/>
 <wire x1="139.7" y1="58.42" x2="129.54" y2="58.42" width="0.1524" layer="91"/>
 <junction x="129.54" y="58.42"/>
@@ -7922,6 +7940,12 @@ SKU: ROB-09065</description>
 <wire x1="99.06" y1="106.68" x2="99.06" y2="99.06" width="0.1524" layer="91"/>
 <pinref part="SP2" gate="G$1" pin="2"/>
 <wire x1="99.06" y1="99.06" x2="111.76" y2="99.06" width="0.1524" layer="91"/>
+<pinref part="TOGGLE" gate="G$1" pin="NO"/>
+<wire x1="111.76" y1="127" x2="114.3" y2="127" width="0.1524" layer="91"/>
+<wire x1="114.3" y1="127" x2="114.3" y2="119.38" width="0.1524" layer="91"/>
+<wire x1="114.3" y1="119.38" x2="99.06" y2="119.38" width="0.1524" layer="91"/>
+<wire x1="99.06" y1="119.38" x2="99.06" y2="106.68" width="0.1524" layer="91"/>
+<junction x="99.06" y="106.68"/>
 </segment>
 </net>
 <net name="N$16" class="0">
@@ -7953,9 +7977,24 @@ SKU: ROB-09065</description>
 <net name="N$24" class="0">
 <segment>
 <pinref part="J5" gate="G$1" pin="3"/>
-<pinref part="S1" gate="G$1" pin="1B"/>
+<pinref part="MOMENTARY" gate="G$1" pin="1B"/>
 <wire x1="104.14" y1="88.9" x2="129.54" y2="88.9" width="0.1524" layer="91"/>
 <wire x1="104.14" y1="88.9" x2="104.14" y2="76.2" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="N$21" class="0">
+<segment>
+<pinref part="J4" gate="G$1" pin="3"/>
+<wire x1="93.98" y1="111.76" x2="93.98" y2="127" width="0.1524" layer="91"/>
+<pinref part="TOGGLE" gate="G$1" pin="1B"/>
+<wire x1="93.98" y1="127" x2="101.6" y2="127" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="N$23" class="0">
+<segment>
+<wire x1="88.9" y1="111.76" x2="27.94" y2="111.76" width="0.1524" layer="91"/>
+<wire x1="27.94" y1="111.76" x2="27.94" y2="43.18" width="0.1524" layer="91"/>
+<wire x1="27.94" y1="43.18" x2="5.08" y2="43.18" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
