@@ -3,7 +3,7 @@
         water level sensor analog outputs, converts each to a voltage, thresholds the voltages to detect
         a water leak condition, integrates the thresholds to filter out false readings, introduces
         some hysteresis into the alarm/reset process, and indicates the alarm.  The program uses a 
-        non-blocking delay that reads each sensor every 2 milliseconds and requires 5 readings above a 
+        non-blocking delay that reads each sensor every 20 milliseconds and requires 5 readings above a 
         threshold for either sensor in order to trigger an alarm.  
         
         This program supports both an alarm and an indicator.  The indicator turns on and off
@@ -31,7 +31,7 @@
         NOTE: need to add toggle switch to schematic.  Consider a pullup on the alarm output of the Photon
             so that the piezo buzzer does not go off when flashing new code.
         
-    author: Bob Glicksman, 02/02/2017
+    author: Bob Glicksman, 02/04/2017
     
     (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
 ***********************************************************************************************************/
@@ -67,7 +67,7 @@ void loop() {
     static boolean previousAlarmState = false;  // used to detect a new alarm
     
     // measure and test water level at pre-determined interval
-    if(nbWaterMeasureInterval(2) == false) {  // 2 ms between sensor readings
+    if(nbWaterMeasureInterval(20) == false) {  // 20 ms between sensor readings
         // toggle the D7 LED to indicate loop timing for testing
         ledState = !ledState;
         if (ledState) {
