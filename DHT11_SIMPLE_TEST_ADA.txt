@@ -1,0 +1,38 @@
+// This #include statement was automatically added by the Particle IDE.
+#include <Adafruit_DHT.h>
+
+
+// system defines
+#define DHTPIN 0     // what pin we're connected to
+
+#define DHTTYPE DHT11		// DHT 11 
+#define DHT_SAMPLE_INTERVAL   2000  // Sample every two seconds
+
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+    Particle.publish("Test program for DHT11 using Adafruit library and blocking delay");
+	dht.begin();
+}
+
+
+void loop() {
+
+// Wait a few seconds between measurements.
+	delay(4000);
+    Particle.publish("Taking another sample!");
+    
+	float h = dht.getHumidity();
+	float f = dht.getTempFarenheit();
+  
+    Particle.publish("Got a reading from the sensor");
+    // Check if any reads failed and exit early (to try again).
+	if (isnan(h) ||  isnan(f)) {
+		Particle.publish("Failed to read from DHT sensor!");
+	} else {
+	    Particle.publish("Humidity (%): " + String(h));
+	    Particle.publish(" Temp (F):" + String(f));
+	}
+}
+
