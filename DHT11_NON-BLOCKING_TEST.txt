@@ -1,0 +1,101 @@
+/* DHT11NB:  Non-Blocking test program for DHT11.
+    This program uses the PietteTech DHT library to implement non-blocking reads from
+    a DHT 11 sensor.  The sensor data is on Photon pin D2 with a 4.7Kohm pullup
+    resistor to +3.3 volts.  The DHT11 is powered off of +3.3 volts from the Photon.
+    
+    The program tests the function readDHT() which performs the actual non-blocking
+    reading of the sensor and returns a status code indicating if the acqusition is
+    currently in progress or is complete.  If complete, the status code indicates if
+    the result status from the reading was OK or in ERROR.  The global variable dhtResultCode
+    holds the error code fromt he library in case more detailed error data is needed.
+    
+    lopp() constantly calls readDHT() with a false argument in order to obtain the status
+    on a frequent basis.  If the status is not acquiring, loop() tests a flag to see if
+    new data is available and if so, reads out the temperature and humidity from the DHT library.
+    Also, in not acquiring, loop() tests to see if a new acquision should  be started and if so,
+    calls readDHT() with a true argument to start a new data acquisition.
+    
+    This program sends new temperature and humidity readings to the Cloud so that the Particle
+    Console can be used for testing.  The next step will be to integrate a "servo meter"
+    readout of the data and finally to use Blynk to publish temperature and humidity data 
+    to the user's app.
+    
+    (c) 2007; Bob Glicksman, Jim Schrempp; Team Practical Projects
+
+*/
+
+// This #include statement was automatically added by the Particle IDE.
+#include <PietteTech_DHT.h>
+
+// system defines
+#define DHTTYPE  DHT11              // Sensor type DHT11/21/22/AM2301/AM2302
+#define DHTPIN   2         	    // Digital pin for communications
+#define DHT_SAMPLE_INTERVAL   4000  // Sample every 4 seconds
+
+// sensor return status codes
+const unsigned int ACQUIRING  = 0;
+const unsigned int COMPLETE_OK  = 1;
+const unsigned int COMPLETE_ERROR  = 2;   
+
+// global to hold the result code from DHT sensor reading
+int dhtResultCode;    
+    
+// Lib instantiate
+PietteTech_DHT DHT(DHTPIN, DHTTYPE);
+
+void setup() {
+    Particle.publish("DHT Test Code, non-blocking");
+    
+}  // end of setup()
+
+void loop() {
+  static unsigned long lastReadTime = 0UL;
+  static boolean newData = false;
+  
+  int sensorStatus = readDHT(false);  // refresh the sensor status but don't start a new reading
+  
+  if(sensorStatus != ACQUIRING) {  
+      if(newData == true) { // we have new data
+        Particle.publish("Humidity (%): " + String(DHT.getHumidity()));
+	    Particle.publish("Temperature (oF): " + String(DHT.getFahrenheit()));
+	    newData = false; // don't publish results again until a new reading
+      }
+      
+      if((millis() - lastReadTime) >= DHT_SAMPLE_INTERVAL) { // we are ready for a new reading
+          readDHT(true);  // start a new reading
+          newData = true; // set flag to indicate that a new reading will result
+          lastReadTime = millis();
+      } 
+  }
+  
+}  // end of loop()
+
+/* 
+readDHT():  read temperature and humidity from the DHT11 sensor
+    arguments:
+        startRead:  true to start a reading, false otherwise
+    return: status code, per global definitions
+*/
+int readDHT(boolean startRead) {
+    static int _state = COMPLETE_OK;
+    
+    if(_state == ACQUIRING) {  // test to see if we are done
+        if(DHT.acquiring() == false) { // done acquriring
+            dhtResultCode = DHT.getStatus();  // store the result code fromt he library
+           if(dhtResultCode == DHTLIB_OK) {
+               _state = COMPLETE_OK;
+           } else {
+               _state = COMPLETE_ERROR;
+           }
+        } 
+    } 
+    else { // we were not in the process of acquiring
+        if(startRead == true) {  // we must start a new reading of sensor data
+           _state = ACQUIRING;  // set the state to acquiring
+            DHT.acquire(); // start the acquisition
+        }
+    }
+    
+    return _state;
+    
+}  // end of readDHT()
