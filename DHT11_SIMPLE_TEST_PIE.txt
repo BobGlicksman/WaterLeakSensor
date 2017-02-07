@@ -2,10 +2,10 @@
 #include <PietteTech_DHT.h>
 
 // system defines
-#define DHTPIN 0     // what pin we're connected to
+#define DHTPIN D2     // what pin we're connected to -- D0 does NOT work!
 
 #define DHTTYPE DHT11		// DHT 11 
-#define DHT_SAMPLE_INTERVAL   2000  // Sample every two seconds
+#define DHT_SAMPLE_INTERVAL   4000  // Sample every two seconds
 
 
 PietteTech_DHT dht(DHTPIN, DHTTYPE);
@@ -18,7 +18,7 @@ void setup() {
 void loop() {
 
 // Wait a few seconds between measurements.
-	delay(4000);
+	delay(DHT_SAMPLE_INTERVAL);
     Particle.publish("Taking another sample!");
     dht.acquireAndWait();  //blocking call to measure
     
