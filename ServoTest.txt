@@ -1,0 +1,42 @@
+/* SERVOTEST: program to position and test out a cheap, 5 volt servo.
+    The servo is connected to a 3.3 volt to 5 volt converter.  The converter
+    input is connected to Photon pin D3.  A 5.6K ohm pulldown resistor is used
+    to ensure that the servo is quiet while the Photon is being flashed/reset.
+    
+    The servo is initially positioned at the center (90 degrees) for 2 seconds.  
+    Then the servo steps between 10 degrees and 170 degrees and back in 10 degree
+    increments for three sweeps.  The servo is then repositioned at 90 degrees.
+    
+    date: 2/07/17, by Bob Glicksman
+    
+    (c) 2017 by Bob Glicksman, Jim Schrempp, and team Practical Projects
+*/
+
+Servo myservo;  // create servo object to control a servo
+
+int pos = 0;    // variable to store the servo position
+
+void setup() {
+    myservo.attach(D3);  // attaches pin D3 to the servo object
+    myservo.write(90);  // set initial position to the center
+    delay(2000);  // wait 2 seconds before stepping the servo
+  
+  // step the servo back and forth three times between 10 and 170 degrees
+    for(int i = 0; i < 3; i++) {
+        for (pos = 10; pos < 170; pos += 10) { 
+            myservo.write(pos); 
+            delay(500); 
+        }
+        for (pos = 170; pos > 10; pos -= 10) { 
+            myservo.write(pos);
+            delay(500);
+        }
+    }
+  // return the servo to the center position
+  myservo.write(90);
+} // end of setup
+
+void loop() {
+ // nothing to do here!
+}
+ 
