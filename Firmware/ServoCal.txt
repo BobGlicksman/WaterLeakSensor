@@ -12,7 +12,7 @@
     
     date: 3/07/17, by Bob Glicksman
     
-    (c) 2017 by Bob Glicksman, Jim Schrempp, and Team Practical Projects
+    (c) 2017 by Bob Glicksman, Jim Schrempp, and team Practical Projects
 */
 
 Servo myservo;  // create servo object to control a servo
@@ -32,7 +32,6 @@ void setup() {
 
 void loop() {
     myservo.write(pos); 
-    delay(100);
 } // end of loop
 
 int servoCmd(String cmd) {
