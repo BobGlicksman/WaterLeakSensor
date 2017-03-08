@@ -7672,7 +7672,7 @@ SKU: ROB-09065</description>
 <instance part="GND4" gate="1" x="76.2" y="99.06" rot="MR0"/>
 <instance part="GND8" gate="1" x="93.98" y="55.88" rot="MR0"/>
 <instance part="GND9" gate="1" x="22.86" y="76.2" rot="MR0"/>
-<instance part="R2" gate="G$1" x="20.32" y="30.48"/>
+<instance part="R2" gate="G$1" x="20.32" y="22.86"/>
 <instance part="TOGGLE" gate="G$1" x="106.68" y="129.54"/>
 <instance part="R3" gate="G$1" x="50.8" y="101.6"/>
 <instance part="GND10" gate="1" x="60.96" y="88.9" rot="MR0"/>
@@ -7818,12 +7818,13 @@ SKU: ROB-09065</description>
 <net name="N$7" class="0">
 <segment>
 <pinref part="IC1" gate="C" pin="I"/>
-<pinref part="U$1" gate="G$1" pin="D3"/>
-<wire x1="10.16" y1="53.34" x2="35.56" y2="53.34" width="0.1524" layer="91"/>
-<wire x1="35.56" y1="53.34" x2="35.56" y2="27.94" width="0.1524" layer="91"/>
 <wire x1="35.56" y1="27.94" x2="45.72" y2="27.94" width="0.1524" layer="91"/>
 <pinref part="R5" gate="G$1" pin="2"/>
 <wire x1="35.56" y1="2.54" x2="35.56" y2="27.94" width="0.1524" layer="91"/>
+<wire x1="35.56" y1="27.94" x2="-38.1" y2="27.94" width="0.1524" layer="91"/>
+<wire x1="-38.1" y1="27.94" x2="-38.1" y2="63.5" width="0.1524" layer="91"/>
+<pinref part="U$1" gate="G$1" pin="A5"/>
+<wire x1="-38.1" y1="63.5" x2="-25.4" y2="63.5" width="0.1524" layer="91"/>
 <junction x="35.56" y="27.94"/>
 </segment>
 </net>
@@ -7859,9 +7860,9 @@ SKU: ROB-09065</description>
 <segment>
 <pinref part="U$1" gate="G$1" pin="3V3"/>
 <wire x1="10.16" y1="93.98" x2="15.24" y2="93.98" width="0.1524" layer="91"/>
-<wire x1="15.24" y1="93.98" x2="15.24" y2="30.48" width="0.1524" layer="91"/>
+<wire x1="15.24" y1="93.98" x2="15.24" y2="22.86" width="0.1524" layer="91"/>
 <pinref part="U$2" gate="G$1" pin="VDD"/>
-<wire x1="15.24" y1="30.48" x2="15.24" y2="25.4" width="0.1524" layer="91"/>
+<wire x1="15.24" y1="22.86" x2="15.24" y2="25.4" width="0.1524" layer="91"/>
 <wire x1="15.24" y1="25.4" x2="15.24" y2="17.78" width="0.1524" layer="91"/>
 <wire x1="15.24" y1="17.78" x2="0" y2="17.78" width="0.1524" layer="91"/>
 <pinref part="J2" gate="G$1" pin="3"/>
@@ -7879,18 +7880,18 @@ SKU: ROB-09065</description>
 <junction x="-48.26" y="25.4"/>
 <junction x="15.24" y="25.4"/>
 <pinref part="R2" gate="G$1" pin="1"/>
-<junction x="15.24" y="30.48"/>
+<junction x="15.24" y="22.86"/>
 </segment>
 </net>
 <net name="N$19" class="0">
 <segment>
 <pinref part="U$2" gate="G$1" pin="DATA"/>
 <wire x1="0" y1="15.24" x2="25.4" y2="15.24" width="0.1524" layer="91"/>
-<wire x1="25.4" y1="15.24" x2="25.4" y2="30.48" width="0.1524" layer="91"/>
+<wire x1="25.4" y1="15.24" x2="25.4" y2="22.86" width="0.1524" layer="91"/>
 <pinref part="R2" gate="G$1" pin="2"/>
-<wire x1="25.4" y1="30.48" x2="25.4" y2="48.26" width="0.1524" layer="91"/>
+<wire x1="25.4" y1="22.86" x2="25.4" y2="48.26" width="0.1524" layer="91"/>
 <wire x1="25.4" y1="48.26" x2="7.62" y2="48.26" width="0.1524" layer="91"/>
-<junction x="25.4" y="30.48"/>
+<junction x="25.4" y="22.86"/>
 </segment>
 </net>
 <net name="VCC" class="0">
