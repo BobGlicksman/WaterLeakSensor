@@ -1,0 +1,183 @@
+/* TemperatureMeter:  read Temperature and Humidity from DHT11 and publish to the Cloud as
+    well as display either temperature or humidity on the servo meter based upon the 
+    position of the toggle switch.
+    
+    This program uses the PietteTech DHT library to implement non-blocking reads from
+    a DHT 11 sensor.  The sensor data is on Photon pin D2 with a 4.7Kohm pullup
+    resistor to +3.3 volts.  The DHT11 is powered off of +3.3 volts from the Photon.
+    
+    This program uses the Servo library to control a servo that is connected to
+    pin A5 through a 3.3 volt to 5 volt level converter.  The servo runs off
+    of 5 volts.
+    
+    lopp() constantly calls readDHT() with a false argument in order to obtain the status
+    on a frequent basis.  If the status is not acquiring, loop() tests a flag to see if
+    new data is available and if so, reads out the temperature and humidity from the DHT library.
+    Also, in not acquiring, loop() tests to see if a new acquision should  be started and if so,
+    calls readDHT() with a true argument to start a new data acquisition.
+    
+    This program sends new temperature and humidity readings to the Cloud so that the Particle
+    Console can be used for testing.  It also uses a servo "meter" to display either temperature or
+    humidity based upon the position of a toggle switch which is connected to pin D1.
+
+    by: Bob Glicksman; 3/14/17
+    
+    (c) 2007; Bob Glicksman, Jim Schrempp; Team Practical Projects
+*/
+
+// This #include statement was automatically added by the Particle IDE.
+#include <PietteTech_DHT.h>
+
+// servo calibration values 
+const int MIN_POS = 5;  // the minimum position value allowed
+const int MAX_POS = 175;  // the maximum position value allowed
+
+// meter face range values
+const int HI_TEMP = 120;  // based upon meter dial face for temperature (F)
+const int LO_TEMP = 40;   // based upon meter dial face for temperature (F)
+const int HI_HUM = 100;  // based upon meter dial face for humidity (%RH)
+const int LO_HUM = 0;  // based upon meter dial face for humidity (%RH)
+
+// calculate meter dial ranges from hi and lo values
+#define TEMP_RANGE (HI_TEMP - LO_TEMP)
+#define HUM_RANGE (HI_HUM - LO_HUM)
+
+// system defines
+#define DHTTYPE  DHT11              // Sensor type DHT11/21/22/AM2301/AM2302
+#define DHTPIN   D2         	    // Digital pin for communications
+#define SERVO_PIN A5                // servo pin
+#define TOGGLE_PIN D1               // pin for temperature/humidity toggle switch
+#define DHT_SAMPLE_INTERVAL   4000  // Sample every 4 seconds
+
+// sensor return status codes
+const unsigned int ACQUIRING  = 0;
+const unsigned int COMPLETE_OK  = 1;
+const unsigned int COMPLETE_ERROR  = 2;   
+
+// global to hold the result code from DHT sensor reading
+int dhtResultCode;  
+    
+// Lib instantiate
+PietteTech_DHT DHT(DHTPIN, DHTTYPE);
+Servo myservo;  // create servo object to control a servo
+
+void setup() {
+    Particle.publish("DHT Test Code, non-blocking");
+    myservo.attach(SERVO_PIN);  // attaches to the servo object
+    pinMode(TOGGLE_PIN, INPUT_PULLUP);  // toggle switch uses an internal pullup
+    
+}  // end of setup()
+
+void loop() {
+  static unsigned long lastReadTime = 0UL;
+  static boolean newData = false;
+  
+  float currentTemp, currentHumidity;
+  
+  int sensorStatus = readDHT(false);  // refresh the sensor status but don't start a new reading
+  
+  if(sensorStatus != ACQUIRING) {  
+      if(newData == true) { // we have new data
+        currentTemp = DHT.getFahrenheit();
+        currentHumidity = DHT.getHumidity();
+        
+        // publish temperature and humidity readings to the cloud
+        Particle.publish("Humidity (%): " + String(currentHumidity));
+	    Particle.publish("Temperature (oF): " + String(currentTemp));
+
+	    // set temperature or humidiy on the servo meter
+	    if(digitalRead(TOGGLE_PIN) == LOW)  {   // temperature reading called for
+	        meterTemp(currentTemp);
+	    }  else  {  // humidity reading called for
+	        meterHumidity(currentHumidity);
+	    }
+	    
+	    newData = false; // don't publish results again until a new reading
+      }
+      
+      if((millis() - lastReadTime) >= DHT_SAMPLE_INTERVAL) { // we are ready for a new reading
+          readDHT(true);  // start a new reading
+          newData = true; // set flag to indicate that a new reading will result
+          lastReadTime = millis();
+      } 
+  }
+  
+}  // end of loop()
+
+/* 
+readDHT():  read temperature and humidity from the DHT11 sensor
+    arguments:
+        startRead:  true to start a reading, false otherwise
+    return: status code, per global definitions
+*/
+int readDHT(boolean startRead) {
+    static int _state = COMPLETE_OK;
+    
+    if(_state == ACQUIRING) {  // test to see if we are done
+        if(DHT.acquiring() == false) { // done acquriring
+            dhtResultCode = DHT.getStatus();  // store the result code fromt he library
+           if(dhtResultCode == DHTLIB_OK) {
+               _state = COMPLETE_OK;
+           } else {
+               _state = COMPLETE_ERROR;
+           }
+        } 
+    } 
+    else { // we were not in the process of acquiring
+        if(startRead == true) {  // we must start a new reading of sensor data
+           _state = ACQUIRING;  // set the state to acquiring
+            DHT.acquire(); // start the acquisition
+        }
+    }
+    
+    return _state;
+    
+}  // end of readDHT()
+
+/* meterTemp():  display temperature reading on the servo meter
+    arguments:
+        temperature: the temperature to display on the meter
+*/
+void meterTemp(float temperature)  {
+    int _temp, _mve, _cmd;
+    
+    _temp = (int)(temperature + 0.5);  // round and truncate to an integer
+    
+    // clamp temperature to within dial limits
+    if(_temp < LO_TEMP) {
+        _temp = LO_TEMP;
+    } else if(_temp > HI_TEMP) {
+        _temp = HI_TEMP;
+    }
+    
+    _mve = (_temp - LO_TEMP) * (MAX_POS - MIN_POS) / TEMP_RANGE;
+    _cmd = MAX_POS - _mve;
+    myservo.write(_cmd);
+
+    return;
+}  // end of meterTemp()
+
+/* meterHumidity():  display humidity reading on the servo meter
+    arguments:
+        humidity: the humidity to display on the meter
+*/
+void meterHumidity(float humidity)  {
+    int _hum, _mve, _cmd;
+    
+    _hum = (int)(humidity + 0.5);  // round and truncate to an integer
+    
+    // clamp temperature to within dial limits
+    if(_hum < LO_HUM) {
+        _hum = LO_HUM;
+    } else if(_hum > HI_HUM) {
+        _hum = HI_HUM;
+    }
+    
+    _mve = (_hum - LO_HUM) * (MAX_POS - MIN_POS) / HUM_RANGE;
+    _cmd = MAX_POS - _mve;
+    myservo.write(_cmd);
+    
+    return;
+}  // end of meterHumidity()
+
+: 77.000000 = null  bob_photon  v0.6.1  
