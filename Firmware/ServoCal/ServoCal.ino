@@ -20,7 +20,7 @@ Servo myservo;  // create servo object to control a servo
 const int MIN_POS = 5;  // the minimum position value allowed
 const int MAX_POS = 175;  // the maximum position value allowed
 
-int pos = (MAX_POS - MIN_POS)/2;    // global variable to store the servo position
+int mg_position = (MAX_POS - MIN_POS)/2;    // global variable to store the servo position
 
 void setup() {
     Particle.function("Servo", servoCmd);
@@ -31,21 +31,21 @@ void setup() {
 } // end of setup
 
 void loop() {
-    myservo.write(pos);
+    myservo.write(mg_position);
 } // end of loop
 
 int servoCmd(String cmd) {
     int servoPosition = cmd.toInt(); // get the user's desired position for the servo
 
     if(servoPosition > MAX_POS)  {
-        pos = MAX_POS;
+        mg_position = MAX_POS;
     }
     else if(servoPosition < MIN_POS)  {
-        pos = MIN_POS;
+        mg_position = MIN_POS;
     }
     else  {
-        pos = servoPosition;
+        mg_position = servoPosition;
     }
 
-    return pos;
+    return mg_position;
 }  // end of servoCommand
