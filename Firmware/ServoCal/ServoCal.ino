@@ -23,29 +23,48 @@ const int MAX_POS = 175;  // the maximum position value allowed
 int mg_position = (MAX_POS - MIN_POS)/2;    // global variable to store the servo position
 
 void setup() {
-    Particle.function("Servo", servoCmd);
+	Particle.function("Servo", servoCmd);
+	Particle.function("ServoPlus5", servoPlus5);
+	Particle.function("ServoMinus2", servoMinus2);
 
-    myservo.attach(A5);  // attaches pin A5 to the servo object
-    delay(2000);  // wait 2 seconds before continuing
+	myservo.attach(A5);  // attaches pin A5 to the servo object
+	delay(2000);  // wait 2 seconds before continuing
 
 } // end of setup
 
 void loop() {
-    myservo.write(mg_position);
+	myservo.write(mg_position);
 } // end of loop
 
 int servoCmd(String cmd) {
-    int servoPosition = cmd.toInt(); // get the user's desired position for the servo
+	int servoPosition = cmd.toInt(); // get the user's desired position for the servo
 
-    if(servoPosition > MAX_POS)  {
-        mg_position = MAX_POS;
-    }
-    else if(servoPosition < MIN_POS)  {
-        mg_position = MIN_POS;
-    }
-    else  {
-        mg_position = servoPosition;
-    }
+	if(servoPosition > MAX_POS)  {
+		mg_position = MAX_POS;
+	}
+	else if(servoPosition < MIN_POS)  {
+		mg_position = MIN_POS;
+	}
+	else  {
+		mg_position = servoPosition;
+	}
 
-    return mg_position;
+	return mg_position;
 }  // end of servoCommand
+
+
+int servoPlus5(String cmd) {
+
+	int new_position = mg_position + 5;
+	servoCmd(String(new_position));
+	return mg_position;
+
+}
+
+int servoMinus2(String cmd) {
+
+	int new_position = mg_position - 2;
+	servoCmd(String(new_position));
+	return mg_position;
+
+}
