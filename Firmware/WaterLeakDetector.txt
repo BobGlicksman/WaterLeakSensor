@@ -1,10 +1,12 @@
 /*********************************************************************************************************
-    WaterLeakDetector: Detect a water leak and sound the alarm!  This program reads two 
-        water level sensor analog outputs, converts each to a voltage, thresholds the voltages to detect
-        a water leak condition, integrates the thresholds to filter out false readings, introduces
-        some hysteresis into the alarm/reset process, and indicates the alarm.  The program uses a 
-        non-blocking delay that reads each sensor every 20 milliseconds and requires 5 readings above a 
-        threshold for either sensor in order to trigger an alarm.  
+    WaterLeakDetector: Detect a water leak and sound the alarm!  Read the ambient temperature
+        and humidity, display them on a "servo meter" and publich the data to the cloud."
+        
+        This program reads two water level sensor analog outputs, converts each to a voltage, 
+        thresholds the voltages to detect a water leak condition, integrates the thresholds to filter 
+        out false readings, introduces some hysteresis into the alarm/reset process, and indicates the alarm.  
+        The program uses a non-blocking delay that reads each sensor every 20 milliseconds and requires 
+        5 readings above a threshold for either sensor in order to trigger an alarm.  
         
         This program supports both an alarm and an indicator.  The indicator turns on and off
         based solely upon the threshold hysteresis.  The alarm also turns on and off based upon the
@@ -20,32 +22,64 @@
         
         When a new alarm condition is sensed, a message to this effect is published to the cloud.
         
+        This program also reads ambient temperature and humidity from a DHT11 sensor.  This data might
+        be useful to determine if a leak in a basement is due to a burst staem pipe.  The temperature
+        and humidity are read out every 4 seconds (nominally).  This data is published to the cloud and
+        is also indicated on  "servo meter".  A toggle switch determine whether the servo meter displays
+        the temperature or the humidity.
+        
         This version of code also also includes a diff() function for computing time differences using 
         millis(), for use in non-blocking delay functionality.
         
-        To Do:
-        1.  add in DHT11 temperature and humidity measurement.
-        2.  add in code to support a software "meter" using a micro servo
-        3.  add in toggle switch and integrate temperature and humidiy measurements with the "meter"
-        4.  add code to use the Blynk app for alarm notification and remote temperature/humidity readingout.
-        NOTE: need to add toggle switch to schematic.  Consider a pullup on the alarm output of the Photon
-            so that the piezo buzzer does not go off when flashing new code.
         
-    author: Bob Glicksman, 02/04/2017
+    author: Bob Glicksman, 03/15/2017
     
     (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
 ***********************************************************************************************************/
 #define IFTTT_NOTIFY    // comment out if IFTTT alarm notification is not desired
 
+#include <PietteTech_DHT.h> // non-blocking library for DHT11
+
+
 // Constants and definitions
+#define DHTTYPE  DHT11              // Sensor type DHT11/21/22/AM2301/AM2302
 const int WATER_SENSOR_A_PIN = A0;
 const int WATER_SENSOR_B_PIN = A1;
 const int LED_PIN = D7;
 const int ALARM_PIN = D6;
 const int INDICATOR_PIN = D5;
 const int BUTTON_PIN = D4;
-
+const int DHTPIN = D2;        	    // Digital pin for communications
+const int TOGGLE_PIN = D1;               // pin for temperature/humidity toggle switch
+const int SERVO_PIN = A5;                // servo pin
+#define DHT_SAMPLE_INTERVAL   4000  // Sample every 4 seconds
 const float WATER_LEVEL_THRESHOLD = 0.5;    // 0.5 volts or higher on either sensor triggers alarm
+
+// servo calibration values 
+const int MIN_POS = 5;  // the minimum position value allowed
+const int MAX_POS = 175;  // the maximum position value allowed
+
+// meter face range values
+const int HI_TEMP = 120;  // based upon meter dial face for temperature (F)
+const int LO_TEMP = 40;   // based upon meter dial face for temperature (F)
+const int HI_HUM = 100;  // based upon meter dial face for humidity (%RH)
+const int LO_HUM = 0;  // based upon meter dial face for humidity (%RH)
+
+// calculate meter dial ranges from hi and lo values
+#define TEMP_RANGE (HI_TEMP - LO_TEMP)
+#define HUM_RANGE (HI_HUM - LO_HUM)
+
+// sensor return status codes
+const unsigned int ACQUIRING  = 0;
+const unsigned int COMPLETE_OK  = 1;
+const unsigned int COMPLETE_ERROR  = 2;   
+
+// global to hold the result code from DHT sensor reading
+int dhtResultCode;  
+    
+// Lib instantiate
+PietteTech_DHT DHT(DHTPIN, DHTTYPE);    // create DHT object to read temp and humidity
+Servo myservo;  // create servo object to control a servo
 
 // Globals
 boolean ledState = false;   // D7 LED is used for indicating water level measurements
@@ -56,6 +90,8 @@ void setup() {
     pinMode(ALARM_PIN, OUTPUT);
     pinMode(INDICATOR_PIN, OUTPUT);
     pinMode(BUTTON_PIN, INPUT_PULLUP);
+    pinMode(TOGGLE_PIN, INPUT_PULLUP);  // toggle switch uses an internal pullup
+    myservo.attach(SERVO_PIN);  // attaches to the servo object
    
 }  // end of setup()
 
@@ -65,17 +101,53 @@ void loop() {
     static boolean indicator = false;  // set to true to flash the indicator
     static boolean alarm = false;   // set to true to sound the alarm
     static boolean previousAlarmState = false;  // used to detect a new alarm
-    
+    static unsigned long lastReadTime = 0UL;    // DHT 11 reading time
+    static boolean newData = false; // flag to indicate DHT11 has new data
+  
+    // Non-blocking read of DHT11 data and publish and display it  
+    float currentTemp, currentHumidity;
+  
+    int sensorStatus = readDHT(false);  // refresh the sensor status but don't start a new reading
+  
+  if(sensorStatus != ACQUIRING) {  
+      if(newData == true) { // we have new data
+        currentTemp = DHT.getFahrenheit();
+        currentHumidity = DHT.getHumidity();
+        
+        // publish temperature and humidity readings to the cloud
+        Particle.publish("Humidity (%): " + String(currentHumidity));
+	    Particle.publish("Temperature (oF): " + String(currentTemp));
+
+	    // set temperature or humidiy on the servo meter
+	    if(digitalRead(TOGGLE_PIN) == LOW)  {   // temperature reading called for
+	        meterTemp(currentTemp);
+	    }  else  {  // humidity reading called for
+	        meterHumidity(currentHumidity);
+	    }
+	    
+	    newData = false; // don't publish results again until a new reading
+      }
+      
+      if((diff(millis(), lastReadTime)) >= DHT_SAMPLE_INTERVAL) { // we are ready for a new reading
+          readDHT(true);  // start a new reading
+          newData = true; // set flag to indicate that a new reading will result
+          lastReadTime = millis();
+       
+            
+            // toggle the D7 LED to indicate loop timing for DHT11 reading
+            ledState = !ledState;
+            if (ledState) {
+                digitalWrite(LED_PIN, HIGH);
+            } else {
+                digitalWrite(LED_PIN, LOW);
+            }
+            
+        } 
+    }
+
     // measure and test water level at pre-determined interval
     if(nbWaterMeasureInterval(20) == false) {  // 20 ms between sensor readings
-        // toggle the D7 LED to indicate loop timing for testing
-        ledState = !ledState;
-        if (ledState) {
-            digitalWrite(LED_PIN, HIGH);
-        } else {
-            digitalWrite(LED_PIN, LOW);
-        }
-        
+
         // read the water level from the sensor; convert to a voltage value
         int waterLevelA, waterLevelB;
         float waterSensorVoltageA, waterSensorVoltageB;
@@ -343,4 +415,81 @@ unsigned long diff(unsigned long current, unsigned long last)  {
     }
     return difference;
 }  // end of diff()
+
+
+/* 
+readDHT():  read temperature and humidity from the DHT11 sensor
+    arguments:
+        startRead:  true to start a reading, false otherwise
+    return: status code, per global definitions
+*/
+int readDHT(boolean startRead) {
+    static int _state = COMPLETE_OK;
+    
+    if(_state == ACQUIRING) {  // test to see if we are done
+        if(DHT.acquiring() == false) { // done acquriring
+            dhtResultCode = DHT.getStatus();  // store the result code fromt he library
+           if(dhtResultCode == DHTLIB_OK) {
+               _state = COMPLETE_OK;
+           } else {
+               _state = COMPLETE_ERROR;
+           }
+        } 
+    } 
+    else { // we were not in the process of acquiring
+        if(startRead == true) {  // we must start a new reading of sensor data
+           _state = ACQUIRING;  // set the state to acquiring
+            DHT.acquire(); // start the acquisition
+        }
+    }
+    
+    return _state;
+    
+}  // end of readDHT()
+
+/* meterTemp():  display temperature reading on the servo meter
+    arguments:
+        temperature: the temperature to display on the meter
+*/
+void meterTemp(float temperature)  {
+    int _temp, _mve, _cmd;
+    
+    _temp = (int)(temperature + 0.5);  // round and truncate to an integer
+    
+    // clamp temperature to within dial limits
+    if(_temp < LO_TEMP) {
+        _temp = LO_TEMP;
+    } else if(_temp > HI_TEMP) {
+        _temp = HI_TEMP;
+    }
+    
+    _mve = (_temp - LO_TEMP) * (MAX_POS - MIN_POS) / TEMP_RANGE;
+    _cmd = MAX_POS - _mve;
+    myservo.write(_cmd);
+
+    return;
+}  // end of meterTemp()
+
+/* meterHumidity():  display humidity reading on the servo meter
+    arguments:
+        humidity: the humidity to display on the meter
+*/
+void meterHumidity(float humidity)  {
+    int _hum, _mve, _cmd;
+    
+    _hum = (int)(humidity + 0.5);  // round and truncate to an integer
+    
+    // clamp temperature to within dial limits
+    if(_hum < LO_HUM) {
+        _hum = LO_HUM;
+    } else if(_hum > HI_HUM) {
+        _hum = HI_HUM;
+    }
+    
+    _mve = (_hum - LO_HUM) * (MAX_POS - MIN_POS) / HUM_RANGE;
+    _cmd = MAX_POS - _mve;
+    myservo.write(_cmd);
+    
+    return;
+}  // end of meterHumidity()
 
