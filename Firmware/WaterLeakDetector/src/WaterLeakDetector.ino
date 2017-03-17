@@ -1,39 +1,39 @@
 /*********************************************************************************************************
     WaterLeakDetector: Detect a water leak and sound the alarm!  Read the ambient temperature
         and humidity, display them on a "servo meter" and publich the data to the cloud."
-        
-        This program reads two water level sensor analog outputs, converts each to a voltage, 
-        thresholds the voltages to detect a water leak condition, integrates the thresholds to filter 
-        out false readings, introduces some hysteresis into the alarm/reset process, and indicates the alarm.  
-        The program uses a non-blocking delay that reads each sensor every 20 milliseconds and requires 
-        5 readings above a threshold for either sensor in order to trigger an alarm.  
-        
+
+        This program reads two water level sensor analog outputs, converts each to a voltage,
+        thresholds the voltages to detect a water leak condition, integrates the thresholds to filter
+        out false readings, introduces some hysteresis into the alarm/reset process, and indicates the alarm.
+        The program uses a non-blocking delay that reads each sensor every 20 milliseconds and requires
+        5 readings above a threshold for either sensor in order to trigger an alarm.
+
         This program supports both an alarm and an indicator.  The indicator turns on and off
         based solely upon the threshold hysteresis.  The alarm also turns on and off based upon the
         threshold hysteresis but, additionally, mutes when a pushbutton is pressed and stays muted until the
         alarm indication is cleared.  Although two sensors are supported, there is only a single alarm
         indication.  Either sensor can trigger the alarm and both sensors must be in the non-alarm
-        state for the alarm indication to be cleared.  
-        
-        The indicator is normally lit to show that the system is working.  The indicator flashes when 
-        an alarm condition is detected (water level threshold) and remains flashing until the alarm 
+        state for the alarm indication to be cleared.
+
+        The indicator is normally lit to show that the system is working.  The indicator flashes when
+        an alarm condition is detected (water level threshold) and remains flashing until the alarm
         condition is cleared.  The alarm is a piezo buzzer that is pulsed whenever there is an alarm
         condition and the mute pushbutton has not been pressed.
-        
+
         When a new alarm condition is sensed, a message to this effect is published to the cloud.
-        
+
         This program also reads ambient temperature and humidity from a DHT11 sensor.  This data might
         be useful to determine if a leak in a basement is due to a burst staem pipe.  The temperature
         and humidity are read out every 4 seconds (nominally).  This data is published to the cloud and
         is also indicated on  "servo meter".  A toggle switch determine whether the servo meter displays
         the temperature or the humidity.
-        
-        This version of code also also includes a diff() function for computing time differences using 
+
+        This version of code also also includes a diff() function for computing time differences using
         millis(), for use in non-blocking delay functionality.
-        
-        
+
+
     author: Bob Glicksman, 03/15/2017
-    
+
     (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
 ***********************************************************************************************************/
 #define IFTTT_NOTIFY    // comment out if IFTTT alarm notification is not desired
@@ -55,7 +55,7 @@ const int SERVO_PIN = A5;                // servo pin
 #define DHT_SAMPLE_INTERVAL   4000  // Sample every 4 seconds
 const float WATER_LEVEL_THRESHOLD = 0.5;    // 0.5 volts or higher on either sensor triggers alarm
 
-// servo calibration values 
+// servo calibration values
 const int MIN_POS = 5;  // the minimum position value allowed
 const int MAX_POS = 175;  // the maximum position value allowed
 
@@ -72,11 +72,11 @@ const int LO_HUM = 0;  // based upon meter dial face for humidity (%RH)
 // sensor return status codes
 const unsigned int ACQUIRING  = 0;
 const unsigned int COMPLETE_OK  = 1;
-const unsigned int COMPLETE_ERROR  = 2;   
+const unsigned int COMPLETE_ERROR  = 2;
 
 // global to hold the result code from DHT sensor reading
-int dhtResultCode;  
-    
+int dhtResultCode;
+
 // Lib instantiate
 PietteTech_DHT DHT(DHTPIN, DHTTYPE);    // create DHT object to read temp and humidity
 Servo myservo;  // create servo object to control a servo
@@ -92,7 +92,7 @@ void setup() {
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(TOGGLE_PIN, INPUT_PULLUP);  // toggle switch uses an internal pullup
     myservo.attach(SERVO_PIN);  // attaches to the servo object
-   
+
 }  // end of setup()
 
 // loop()
@@ -103,20 +103,20 @@ void loop() {
     static boolean previousAlarmState = false;  // used to detect a new alarm
     static unsigned long lastReadTime = 0UL;    // DHT 11 reading time
     static boolean newData = false; // flag to indicate DHT11 has new data
-  
-    // Non-blocking read of DHT11 data and publish and display it  
+
+    // Non-blocking read of DHT11 data and publish and display it
     float currentTemp, currentHumidity;
-  
+
     int sensorStatus = readDHT(false);  // refresh the sensor status but don't start a new reading
-  
-  if(sensorStatus != ACQUIRING) {  
+
+  if(sensorStatus != ACQUIRING) {
       if(newData == true) { // we have new data
         currentTemp = DHT.getFahrenheit();
         currentHumidity = DHT.getHumidity();
-        
+
         // publish temperature and humidity readings to the cloud
-        Particle.publish("Humidity (%): " + String(currentHumidity));
-	    Particle.publish("Temperature (oF): " + String(currentTemp));
+        Particle.publish("Humidity (%)", String(currentHumidity));
+	    Particle.publish("Temperature (oF)", String(currentTemp));
 
 	    // set temperature or humidiy on the servo meter
 	    if(digitalRead(TOGGLE_PIN) == LOW)  {   // temperature reading called for
@@ -124,16 +124,16 @@ void loop() {
 	    }  else  {  // humidity reading called for
 	        meterHumidity(currentHumidity);
 	    }
-	    
+
 	    newData = false; // don't publish results again until a new reading
       }
-      
+
       if((diff(millis(), lastReadTime)) >= DHT_SAMPLE_INTERVAL) { // we are ready for a new reading
           readDHT(true);  // start a new reading
           newData = true; // set flag to indicate that a new reading will result
           lastReadTime = millis();
-       
-            
+
+
             // toggle the D7 LED to indicate loop timing for DHT11 reading
             ledState = !ledState;
             if (ledState) {
@@ -141,8 +141,8 @@ void loop() {
             } else {
                 digitalWrite(LED_PIN, LOW);
             }
-            
-        } 
+
+        }
     }
 
     // measure and test water level at pre-determined interval
@@ -151,27 +151,27 @@ void loop() {
         // read the water level from the sensor; convert to a voltage value
         int waterLevelA, waterLevelB;
         float waterSensorVoltageA, waterSensorVoltageB;
-        
+
         waterLevelA = analogRead(WATER_SENSOR_A_PIN);
         waterLevelB = analogRead(WATER_SENSOR_B_PIN);
         waterSensorVoltageA = ((float)waterLevelA * 3.3) / 4095;
         waterSensorVoltageB = ((float)waterLevelB * 3.3) / 4095;
-        
+
         // integrate and threshold measurement for alarm
         if(alarmIntegrator(waterSensorVoltageA, waterSensorVoltageB) == true) {
             indicator = true;
             if(mute == false) {
                 alarm = true;
             } else {
-                alarm = false;                
+                alarm = false;
             }
         } else {
             indicator = false;
             alarm = false;
             mute = false;   // reset alarm muting
         }
-        
-        #ifdef IFTTT_NOTIFY 
+
+        #ifdef IFTTT_NOTIFY
             //  For IFTTT Notification: test if new alarm and publish it
            if((indicator == true) && (indicator != previousAlarmState)) {
              Particle.publish("Water leak alarm", Time.timeStr(Time.now()) + " Z");
@@ -179,17 +179,17 @@ void loop() {
            previousAlarmState = indicator; // update old alarm state to present state
          #endif
     }
-    
+
     // process the mute pushbutton
     if(readPushButton() == true) {
         mute = true; // set the alarm mute flag
-        alarm = false; // mute the alarm right now      
+        alarm = false; // mute the alarm right now
     }
-    
+
     // refresh non-blocking alarm & indicator status
     nbFlashIndicator(indicator);
     nbSoundAlarm(alarm);
-    
+
 } // end of loop()
 
 /* alarmIntegrator():  function that thresholds sensor voltage readings and integrates the values.
@@ -203,28 +203,28 @@ void loop() {
 boolean alarmIntegrator(float sensorAReading, float sensorBReading) {
     const byte ALARM_LIMIT = 5;     // 5 thresholds are required to trigger an alarm, then 5 under thresholds
                                     //  are required to reset the alarm condition.
-                                    
+
     static byte integratedValueA = 0; // threshold exceeded accumulator for sensor A
     static byte integratedValueB = 0; // threshold exceeded accumulator for sensor B
     static boolean lastAlarmState = false;
     boolean thresholdedReadingA;
     boolean thresholdedReadingB;
-    
+
    // test to see if threshold was exceeded on each sensor
     if(sensorAReading > WATER_LEVEL_THRESHOLD) {
         thresholdedReadingA = true;
     } else {
         thresholdedReadingA = false;
     }
-    
+
     if(sensorBReading > WATER_LEVEL_THRESHOLD) {
         thresholdedReadingB = true;
     } else {
         thresholdedReadingB = false;
     }
-    
+
     // integrate thresholds or under thresholds; clamp them at ALARM_LIMIT and 0
-    if(thresholdedReadingA == true)  {       // increment integrator 
+    if(thresholdedReadingA == true)  {       // increment integrator
         if(integratedValueA < ALARM_LIMIT)  {
             integratedValueA++;
         } else {
@@ -237,8 +237,8 @@ boolean alarmIntegrator(float sensorAReading, float sensorBReading) {
             integratedValueA = 0;    // clamp at zero
         }
     }
-    
-    if(thresholdedReadingB == true)  {       // increment integrator 
+
+    if(thresholdedReadingB == true)  {       // increment integrator
         if(integratedValueB < ALARM_LIMIT)  {
             integratedValueB++;
         } else {
@@ -251,8 +251,8 @@ boolean alarmIntegrator(float sensorAReading, float sensorBReading) {
             integratedValueB = 0;    // clamp at zero
         }
     }
-    
-    
+
+
     // Determine the return value
     if((integratedValueA >= ALARM_LIMIT) || (integratedValueB >= ALARM_LIMIT)) {    // either integrator at the limit
         lastAlarmState = true;
@@ -276,17 +276,17 @@ void nbFlashIndicator(boolean flash) {
     const unsigned long FLASH_INTERVAL = 150; // 150 ms on and off
     static boolean lastOn = true;   // start with LED on
     static unsigned long lastTime = millis();
-    
+
     if(flash == true) {     // flashes the LED
         if(diff(millis(), lastTime) >= FLASH_INTERVAL) { // flip the LED state
             lastOn = !lastOn;
             lastTime = millis();
         }
-            
+
     } else {  // not flashing the LED
         lastOn = true;
     }
-    
+
     if(lastOn == true)  {
         digitalWrite(INDICATOR_PIN, HIGH);
     } else {
@@ -303,17 +303,17 @@ void nbSoundAlarm(boolean sound) {
     const unsigned long BEEP_INTERVAL = 50; // 50 ms on and off
     static boolean lastOn = false;   // start with alarm off
     static unsigned long lastTime = millis();
-    
+
     if(sound == true) {     // sound the buzzer
         if(diff(millis(), lastTime) >= BEEP_INTERVAL) { // flip the buzzer state
             lastOn = !lastOn;
             lastTime = millis();
         }
-            
+
     } else {  // not alarming
         lastOn = false;
     }
-    
+
     if(lastOn == true)  {
         digitalWrite(ALARM_PIN, HIGH);
     } else {
@@ -332,14 +332,14 @@ boolean nbWaterMeasureInterval(unsigned long delayTime) {
     static boolean lastState = false;
     static unsigned long lastTime;
     static unsigned long currentTime;
-    
+
     // if not currently in timing, start timing
     if(lastState == false) {
         lastTime = millis();
         lastState = true;   // in measurement
         return true;
     }
-    
+
     // currently timing, so test for completion and process accordingly
     currentTime = millis();
     if(diff(currentTime, lastTime) < delayTime) { // time not yet expired
@@ -359,15 +359,15 @@ boolean nbWaterMeasureInterval(unsigned long delayTime) {
 */
 boolean readPushButton() {
     const unsigned long DEBOUNCE_TIME = 10;  // 10 milliseconds
-    
+
     // state variable states
     const byte OFF = 0;
     const byte DEBOUNCING = 1;
     const byte DEBOUNCED = 2;
-    
+
     static byte lastState = OFF;
     static unsigned long beginTime;
-    
+
     if(digitalRead(BUTTON_PIN) == LOW) {  // button has been pressed
         switch (lastState) {
             case OFF:       // new button press
@@ -389,7 +389,7 @@ boolean readPushButton() {
             default:
                 return false;
         }
-        
+
     } else {        // the button has been released
         lastState = OFF;
         return false;
@@ -407,7 +407,7 @@ boolean readPushButton() {
 unsigned long diff(unsigned long current, unsigned long last)  {
     const unsigned long MAX = 0xffffffff;  // an unsigned long is 4 bytes
     unsigned long difference;
-    
+
     if (current < last) {       // overflow condition
         difference = (MAX - last) + current;
     } else {
@@ -417,7 +417,7 @@ unsigned long diff(unsigned long current, unsigned long last)  {
 }  // end of diff()
 
 
-/* 
+/*
 readDHT():  read temperature and humidity from the DHT11 sensor
     arguments:
         startRead:  true to start a reading, false otherwise
@@ -425,7 +425,7 @@ readDHT():  read temperature and humidity from the DHT11 sensor
 */
 int readDHT(boolean startRead) {
     static int _state = COMPLETE_OK;
-    
+
     if(_state == ACQUIRING) {  // test to see if we are done
         if(DHT.acquiring() == false) { // done acquriring
             dhtResultCode = DHT.getStatus();  // store the result code fromt he library
@@ -434,17 +434,17 @@ int readDHT(boolean startRead) {
            } else {
                _state = COMPLETE_ERROR;
            }
-        } 
-    } 
+        }
+    }
     else { // we were not in the process of acquiring
         if(startRead == true) {  // we must start a new reading of sensor data
            _state = ACQUIRING;  // set the state to acquiring
             DHT.acquire(); // start the acquisition
         }
     }
-    
+
     return _state;
-    
+
 }  // end of readDHT()
 
 /* meterTemp():  display temperature reading on the servo meter
@@ -453,16 +453,16 @@ int readDHT(boolean startRead) {
 */
 void meterTemp(float temperature)  {
     int _temp, _mve, _cmd;
-    
+
     _temp = (int)(temperature + 0.5);  // round and truncate to an integer
-    
+
     // clamp temperature to within dial limits
     if(_temp < LO_TEMP) {
         _temp = LO_TEMP;
     } else if(_temp > HI_TEMP) {
         _temp = HI_TEMP;
     }
-    
+
     _mve = (_temp - LO_TEMP) * (MAX_POS - MIN_POS) / TEMP_RANGE;
     _cmd = MAX_POS - _mve;
     myservo.write(_cmd);
@@ -476,20 +476,19 @@ void meterTemp(float temperature)  {
 */
 void meterHumidity(float humidity)  {
     int _hum, _mve, _cmd;
-    
+
     _hum = (int)(humidity + 0.5);  // round and truncate to an integer
-    
+
     // clamp temperature to within dial limits
     if(_hum < LO_HUM) {
         _hum = LO_HUM;
     } else if(_hum > HI_HUM) {
         _hum = HI_HUM;
     }
-    
+
     _mve = (_hum - LO_HUM) * (MAX_POS - MIN_POS) / HUM_RANGE;
     _cmd = MAX_POS - _mve;
     myservo.write(_cmd);
-    
+
     return;
 }  // end of meterHumidity()
-
