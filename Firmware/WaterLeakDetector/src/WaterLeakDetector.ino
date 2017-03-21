@@ -23,7 +23,7 @@
         When a new alarm condition is sensed, a message to this effect is published to the cloud.
 
         This program also reads ambient temperature and humidity from a DHT11 sensor.  This data might
-        be useful to determine if a leak in a basement is due to a burst staem pipe.  The temperature
+        be useful to determine if a leak in a basement is due to a burst steam pipe.  The temperature
         and humidity are read out every 4 seconds (nominally).  This data is published to the cloud and
         is also indicated on  "servo meter".  A toggle switch determine whether the servo meter displays
         the temperature or the humidity.
@@ -32,7 +32,7 @@
         millis(), for use in non-blocking delay functionality.
 
 
-    author: Bob Glicksman, 03/15/2017
+    author: Bob Glicksman, 03/15/2017; updates:  Jim Schrempp, 03/20/17
 
     (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
 ***********************************************************************************************************/
