@@ -106,6 +106,7 @@ void loop() {
 
     // Non-blocking read of DHT11 data and publish and display it
     float currentTemp, currentHumidity;
+    static float displayTemp, displayHumidity; // smoothed for the display
 
     int sensorStatus = readDHT(false);  // refresh the sensor status but don't start a new reading
 
@@ -115,14 +116,29 @@ void loop() {
         currentHumidity = DHT.getHumidity();
 
         // publish temperature and humidity readings to the cloud
-        Particle.publish("Humidity (%)", String(currentHumidity));
-	    Particle.publish("Temperature (oF)", String(currentTemp));
+        //Particle.publish("Humidity (%)", String(currentHumidity));
+	    //Particle.publish("Temperature (oF)", String(currentTemp));
+
+        // Smooth the readings for display
+        if (displayTemp < 10) {   // first time init
+            displayTemp = currentTemp;
+        }
+        if (displayHumidity < 10){  // first time init
+            displayHumidity = currentHumidity;
+        }
+        // 10 point moving average
+        displayTemp =  (0.9 * displayTemp) +  (0.1 * currentTemp);
+        displayHumidity =  (0.9 * displayHumidity) +  (0.1 * currentHumidity);
+
+        // publish Smoothed temperature and humidity readings to the cloud
+        Particle.publish("Humidity Smoothed (%)", String(displayHumidity));
+        Particle.publish("Temperature Smoothed (oF)", String(displayTemp));
 
 	    // set temperature or humidiy on the servo meter
 	    if(digitalRead(TOGGLE_PIN) == LOW)  {   // temperature reading called for
-	        meterTemp(currentTemp);
+	        meterTemp(displayTemp);
 	    }  else  {  // humidity reading called for
-	        meterHumidity(currentHumidity);
+	        meterHumidity(displayHumidity);
 	    }
 
 	    newData = false; // don't publish results again until a new reading
