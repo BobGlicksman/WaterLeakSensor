@@ -25,14 +25,14 @@
         This program also reads ambient temperature and humidity from a DHT11 sensor.  This data might
         be useful to determine if a leak in a basement is due to a burst steam pipe.  The temperature
         and humidity are read out every 4 seconds (nominally).  This data is published to the cloud and
-        is also indicated on  "servo meter".  A toggle switch determine whether the servo meter displays
-        the temperature or the humidity.
+        is also indicated on a "servo meter"; the latter using a 10 value moving average for smoothing.  
+        A toggle switch determine whether the servo meter displays the temperature or the humidity.
 
         This version of code also also includes a diff() function for computing time differences using
         millis(), for use in non-blocking delay functionality.
 
 
-    author: Bob Glicksman, 03/15/2017; updates:  Jim Schrempp, 03/20/17
+    author: Bob Glicksman, 03/15/2017; updates:  Jim Schrempp, 03/22/17
 
     (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
 ***********************************************************************************************************/
@@ -114,10 +114,6 @@ void loop() {
       if(newData == true) { // we have new data
         currentTemp = DHT.getFahrenheit();
         currentHumidity = DHT.getHumidity();
-
-        // publish temperature and humidity readings to the cloud
-        //Particle.publish("Humidity (%)", String(currentHumidity));
-	    //Particle.publish("Temperature (oF)", String(currentTemp));
 
         // Smooth the readings for display
         if (displayTemp < 10) {   // first time init
