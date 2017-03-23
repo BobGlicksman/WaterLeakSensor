@@ -25,21 +25,20 @@
         This program also reads ambient temperature and humidity from a DHT11 sensor.  This data might
         be useful to determine if a leak in a basement is due to a burst steam pipe.  The temperature
         and humidity are read out every 4 seconds (nominally).  This data is published to the cloud and
-        is also indicated on a "servo meter"; the latter using a 10 value moving average for smoothing.  
+        is also indicated on  "servo meter"; the latter using a 10 value moving average.  
         A toggle switch determine whether the servo meter displays the temperature or the humidity.
 
         This version of code also also includes a diff() function for computing time differences using
         millis(), for use in non-blocking delay functionality.
 
 
-    author: Bob Glicksman, 03/15/2017; updates:  Jim Schrempp, 03/22/17
+    author: Bob Glicksman, Jim Schrempp; 03/22/2017
 
     (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
 ***********************************************************************************************************/
 #define IFTTT_NOTIFY    // comment out if IFTTT alarm notification is not desired
 
 #include <PietteTech_DHT.h> // non-blocking library for DHT11
-
 
 // Constants and definitions
 #define DHTTYPE  DHT11              // Sensor type DHT11/21/22/AM2301/AM2302
@@ -103,10 +102,29 @@ void loop() {
     static boolean previousAlarmState = false;  // used to detect a new alarm
     static unsigned long lastReadTime = 0UL;    // DHT 11 reading time
     static boolean newData = false; // flag to indicate DHT11 has new data
-
+    static boolean toggle = false;  // hold the reading of the toggle switch; false for humidity, true for temperature
+    static boolean lastToggle = false;  // hold the previous reading of the toggle switch
+    
     // Non-blocking read of DHT11 data and publish and display it
     float currentTemp, currentHumidity;
-    static float displayTemp, displayHumidity; // smoothed for the display
+    static float displayTemp = 0.0, displayHumidity = 0.0; // smoothed for the display
+    
+    //  read the toggle switch position and set the boolean for type of display accordingly
+    if(digitalRead(TOGGLE_PIN) == LOW)  {   // indicates a temperature reading
+        toggle = true;
+    } else {
+        toggle = false;
+    }
+    
+    // determine if the toggle state has changed
+    if(toggle != lastToggle) {  // user has changed the toggle switch state
+        lastToggle = toggle;
+        if(toggle == false) {   // display humidity now
+	        meterHumidity(displayHumidity);            
+        } else {
+            meterTemp(displayTemp); // display temperature now
+        }
+    }
 
     int sensorStatus = readDHT(false);  // refresh the sensor status but don't start a new reading
 
@@ -131,7 +149,7 @@ void loop() {
         Particle.publish("Temperature Smoothed (oF)", String(displayTemp));
 
 	    // set temperature or humidiy on the servo meter
-	    if(digitalRead(TOGGLE_PIN) == LOW)  {   // temperature reading called for
+	    if(toggle == true)  {   // temperature reading called for
 	        meterTemp(displayTemp);
 	    }  else  {  // humidity reading called for
 	        meterHumidity(displayHumidity);
