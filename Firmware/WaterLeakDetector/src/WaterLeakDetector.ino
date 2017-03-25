@@ -53,6 +53,7 @@ const int DHTPIN = D2;        	    // Digital pin for communications
 const int TOGGLE_PIN = D1;               // pin for temperature/humidity toggle switch
 const int SERVO_PIN = A5;                // servo pin
 #define DHT_SAMPLE_INTERVAL   4000  // Sample every 4 seconds
+#define PARTICLE_PUBLISH_INTERVAL 60000 // Publish values every 60 seconds
 const float WATER_LEVEL_THRESHOLD = 0.5;    // 0.5 volts or higher on either sensor triggers alarm
 
 // servo calibration values
@@ -85,7 +86,7 @@ PietteTech_DHT DHT(DHTPIN, DHTTYPE);    // create DHT object to read temp and hu
 Servo myservo;  // create servo object to control a servo
 
 //blynk
-char auth[] = "YOUR BLYNK AUTH CODE HERE"; // DO NOT CHECK IN YOUR BLYNK AUTH!!
+char auth[] = "YOUR BLYNK AUTH CODE HERE" // DO NOT CHECK IN YOUR BLYNK AUTH!!
 #define BLYNK_VPIN_HUMIDITY V5
 #define BLYNK_VPIN_TEMPERATURE V6
 #define BLYNK_VPIN_TEMPERATURE_2 V7
@@ -134,6 +135,7 @@ void loop() {
     static boolean alarm = false;   // set to true to sound the alarm
     static boolean previousAlarmState = false;  // used to detect a new alarm
     static unsigned long lastReadTime = 0UL;    // DHT 11 reading time
+    static unsigned long lastPublishTime = 0UL;  // Published particle event time
     static boolean newData = false; // flag to indicate DHT11 has new data
     static boolean toggle = false;  // hold the reading of the toggle switch; false for humidity, true for temperature
     static boolean lastToggle = false;  // hold the previous reading of the toggle switch
@@ -178,10 +180,6 @@ void loop() {
         mg_smoothedTemp =  (0.9 * mg_smoothedTemp) +  (0.1 * currentTemp);
         mg_smoothedHumidity =  (0.9 * mg_smoothedHumidity) +  (0.1 * currentHumidity);
 
-        // publish Smoothed temperature and humidity readings to the cloud
-        Particle.publish("Humidity Smoothed (%)", String(mg_smoothedHumidity));
-        Particle.publish("Temperature Smoothed (oF)", String(mg_smoothedTemp));
-
 	    // set temperature or humidiy on the servo meter
 	    if(toggle == true)  {   // temperature reading called for
 	        meterTemp(mg_smoothedTemp);
@@ -208,6 +206,15 @@ void loop() {
 
         }
     }
+
+    if((diff(millis(), lastPublishTime)) >= PARTICLE_PUBLISH_INTERVAL)  // we should publish our values
+    {
+        lastPublishTime = millis();
+        // publish Smoothed temperature and humidity readings to the cloud
+        Particle.publish("Humidity Smoothed (%)", String(mg_smoothedHumidity));
+        Particle.publish("Temperature Smoothed (oF)", String(mg_smoothedTemp));
+    }
+
 
     // measure and test water level at pre-determined interval
     if(nbWaterMeasureInterval(20) == false) {  // 20 ms between sensor readings
