@@ -37,9 +37,10 @@
     (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
 ***********************************************************************************************************/
 #define IFTTT_NOTIFY    // comment out if IFTTT alarm notification is not desired
+//#define BLYNK_NOTIFY    // comment out if you do not want Blynk to be active
 
 #include <PietteTech_DHT.h> // non-blocking library for DHT11
-#include "blynk.h"
+
 
 // Constants and definitions
 #define DHTTYPE  DHT11              // Sensor type DHT11/21/22/AM2301/AM2302
@@ -85,8 +86,10 @@ float mg_smoothedTemp = 0.0, mg_smoothedHumidity = 0.0; // smoothed for the disp
 PietteTech_DHT DHT(DHTPIN, DHTTYPE);    // create DHT object to read temp and humidity
 Servo myservo;  // create servo object to control a servo
 
+#ifdef BLYNK_NOTIFY
 //blynk
-char auth[] = "YOUR BLYNK AUTH CODE HERE" // DO NOT CHECK IN YOUR BLYNK AUTH!!
+#include "blynk.h"
+char auth[] = "YOUR BLYNK AUTH CODE HERE"; // DO NOT CHECK IN YOUR BLYNK AUTH!!
 #define BLYNK_VPIN_HUMIDITY V5
 #define BLYNK_VPIN_TEMPERATURE V6
 #define BLYNK_VPIN_TEMPERATURE_2 V7
@@ -106,10 +109,15 @@ BLYNK_READ(BLYNK_VPIN_TEMPERATURE_2)
 {
     Blynk.virtualWrite(BLYNK_VPIN_TEMPERATURE_2, mg_smoothedTemp);
 }
+#endif
 
+// We leave the method call so that we don't have to ifdef every place it might be
+// called in the code.
 void blynkRaiseAlarm()
 {
+#ifdef BLYNK_NOTIFY
     Blynk.notify("WARNING: Water leak detected.");
+#endif
 }
 
 
@@ -124,7 +132,10 @@ void setup() {
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(TOGGLE_PIN, INPUT_PULLUP);  // toggle switch uses an internal pullup
     myservo.attach(SERVO_PIN);  // attaches to the servo object
+
+#ifdef BLYNK_NOTIFY
     Blynk.begin(auth);
+#endif
 
 }  // end of setup()
 
@@ -143,7 +154,9 @@ void loop() {
     // Non-blocking read of DHT11 data and publish and display it
     float currentTemp, currentHumidity;
 
+#ifdef BLYNK_NOTIFY
     Blynk.run();
+#endif
 
     //  read the toggle switch position and set the boolean for type of display accordingly
     if(digitalRead(TOGGLE_PIN) == LOW)  {   // indicates a temperature reading
