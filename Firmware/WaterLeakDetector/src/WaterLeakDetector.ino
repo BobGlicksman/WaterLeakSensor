@@ -25,7 +25,7 @@
         This program also reads ambient temperature and humidity from a DHT11 sensor.  This data might
         be useful to determine if a leak in a basement is due to a burst steam pipe.  The temperature
         and humidity are read out every 4 seconds (nominally).  This data is published to the cloud and
-        is also indicated on  "servo meter"; the latter using a 10 value moving average.  
+        is also indicated on  "servo meter"; the latter using a 10 value moving average.
         A toggle switch determine whether the servo meter displays the temperature or the humidity.
 
         This version of code also also includes a diff() function for computing time differences using
@@ -39,6 +39,7 @@
 #define IFTTT_NOTIFY    // comment out if IFTTT alarm notification is not desired
 
 #include <PietteTech_DHT.h> // non-blocking library for DHT11
+#include "blynk.h"
 
 // Constants and definitions
 #define DHTTYPE  DHT11              // Sensor type DHT11/21/22/AM2301/AM2302
@@ -52,6 +53,7 @@ const int DHTPIN = D2;        	    // Digital pin for communications
 const int TOGGLE_PIN = D1;               // pin for temperature/humidity toggle switch
 const int SERVO_PIN = A5;                // servo pin
 #define DHT_SAMPLE_INTERVAL   4000  // Sample every 4 seconds
+#define PARTICLE_PUBLISH_INTERVAL 60000 // Publish values every 60 seconds
 const float WATER_LEVEL_THRESHOLD = 0.5;    // 0.5 volts or higher on either sensor triggers alarm
 
 // servo calibration values
@@ -76,9 +78,40 @@ const unsigned int COMPLETE_ERROR  = 2;
 // global to hold the result code from DHT sensor reading
 int dhtResultCode;
 
+// global to hold the smoothed values of humidity and temperature that we display and report
+float mg_smoothedTemp = 0.0, mg_smoothedHumidity = 0.0; // smoothed for the display
+
 // Lib instantiate
 PietteTech_DHT DHT(DHTPIN, DHTTYPE);    // create DHT object to read temp and humidity
 Servo myservo;  // create servo object to control a servo
+
+//blynk
+char auth[] = "YOUR BLYNK AUTH CODE HERE" // DO NOT CHECK IN YOUR BLYNK AUTH!!
+#define BLYNK_VPIN_HUMIDITY V5
+#define BLYNK_VPIN_TEMPERATURE V6
+#define BLYNK_VPIN_TEMPERATURE_2 V7
+// These functions are called by Blynk application widgets to get the value of
+// a "Virtual Pin"
+BLYNK_READ(BLYNK_VPIN_HUMIDITY)
+{
+    Blynk.virtualWrite(BLYNK_VPIN_HUMIDITY, mg_smoothedHumidity);
+}
+
+BLYNK_READ(BLYNK_VPIN_TEMPERATURE)
+{
+    Blynk.virtualWrite(BLYNK_VPIN_TEMPERATURE, mg_smoothedTemp);
+}
+
+BLYNK_READ(BLYNK_VPIN_TEMPERATURE_2)
+{
+    Blynk.virtualWrite(BLYNK_VPIN_TEMPERATURE_2, mg_smoothedTemp);
+}
+
+void blynkRaiseAlarm()
+{
+    Blynk.notify("WARNING: Water leak detected.");
+}
+
 
 // Globals
 boolean ledState = false;   // D7 LED is used for indicating water level measurements
@@ -91,6 +124,7 @@ void setup() {
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(TOGGLE_PIN, INPUT_PULLUP);  // toggle switch uses an internal pullup
     myservo.attach(SERVO_PIN);  // attaches to the servo object
+    Blynk.begin(auth);
 
 }  // end of setup()
 
@@ -101,28 +135,30 @@ void loop() {
     static boolean alarm = false;   // set to true to sound the alarm
     static boolean previousAlarmState = false;  // used to detect a new alarm
     static unsigned long lastReadTime = 0UL;    // DHT 11 reading time
+    static unsigned long lastPublishTime = 0UL;  // Published particle event time
     static boolean newData = false; // flag to indicate DHT11 has new data
     static boolean toggle = false;  // hold the reading of the toggle switch; false for humidity, true for temperature
     static boolean lastToggle = false;  // hold the previous reading of the toggle switch
-    
+
     // Non-blocking read of DHT11 data and publish and display it
     float currentTemp, currentHumidity;
-    static float displayTemp = 0.0, displayHumidity = 0.0; // smoothed for the display
-    
+
+    Blynk.run();
+
     //  read the toggle switch position and set the boolean for type of display accordingly
     if(digitalRead(TOGGLE_PIN) == LOW)  {   // indicates a temperature reading
         toggle = true;
     } else {
         toggle = false;
     }
-    
+
     // determine if the toggle state has changed
     if(toggle != lastToggle) {  // user has changed the toggle switch state
         lastToggle = toggle;
         if(toggle == false) {   // display humidity now
-	        meterHumidity(displayHumidity);            
+	        meterHumidity(mg_smoothedHumidity);
         } else {
-            meterTemp(displayTemp); // display temperature now
+            meterTemp(mg_smoothedTemp); // display temperature now
         }
     }
 
@@ -134,25 +170,21 @@ void loop() {
         currentHumidity = DHT.getHumidity();
 
         // Smooth the readings for display
-        if (displayTemp < 10) {   // first time init
-            displayTemp = currentTemp;
+        if (mg_smoothedTemp < 10) {   // first time init
+            mg_smoothedTemp = currentTemp;
         }
-        if (displayHumidity < 10){  // first time init
-            displayHumidity = currentHumidity;
+        if (mg_smoothedHumidity < 10){  // first time init
+            mg_smoothedHumidity = currentHumidity;
         }
         // 10 point moving average
-        displayTemp =  (0.9 * displayTemp) +  (0.1 * currentTemp);
-        displayHumidity =  (0.9 * displayHumidity) +  (0.1 * currentHumidity);
-
-        // publish Smoothed temperature and humidity readings to the cloud
-        Particle.publish("Humidity Smoothed (%)", String(displayHumidity));
-        Particle.publish("Temperature Smoothed (oF)", String(displayTemp));
+        mg_smoothedTemp =  (0.9 * mg_smoothedTemp) +  (0.1 * currentTemp);
+        mg_smoothedHumidity =  (0.9 * mg_smoothedHumidity) +  (0.1 * currentHumidity);
 
 	    // set temperature or humidiy on the servo meter
 	    if(toggle == true)  {   // temperature reading called for
-	        meterTemp(displayTemp);
+	        meterTemp(mg_smoothedTemp);
 	    }  else  {  // humidity reading called for
-	        meterHumidity(displayHumidity);
+	        meterHumidity(mg_smoothedHumidity);
 	    }
 
 	    newData = false; // don't publish results again until a new reading
@@ -174,6 +206,15 @@ void loop() {
 
         }
     }
+
+    if((diff(millis(), lastPublishTime)) >= PARTICLE_PUBLISH_INTERVAL)  // we should publish our values
+    {
+        lastPublishTime = millis();
+        // publish Smoothed temperature and humidity readings to the cloud
+        Particle.publish("Humidity Smoothed (%)", String(mg_smoothedHumidity));
+        Particle.publish("Temperature Smoothed (oF)", String(mg_smoothedTemp));
+    }
+
 
     // measure and test water level at pre-determined interval
     if(nbWaterMeasureInterval(20) == false) {  // 20 ms between sensor readings
@@ -210,10 +251,18 @@ void loop() {
          #endif
     }
 
+    // If we have an alarm, then send a notification
+    static bool alarmSent = false;
+    if (alarm && !alarmSent) {
+        alarmSent = true;
+        blynkRaiseAlarm();
+    }
+
     // process the mute pushbutton
     if(readPushButton() == true) {
         mute = true; // set the alarm mute flag
         alarm = false; // mute the alarm right now
+        alarmSent = false; // reset the alarm send flag
     }
 
     // refresh non-blocking alarm & indicator status
