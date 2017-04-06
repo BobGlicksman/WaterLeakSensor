@@ -6739,8 +6739,8 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 </classes>
 <parts>
 <part name="U$1" library="Spark" deviceset="PHOTON_SMD" device=""/>
-<part name="J1" library="con-lstb" deviceset="MA03-1" device=""/>
-<part name="J2" library="con-lstb" deviceset="MA03-1" device=""/>
+<part name="J1" library="con-lstb" deviceset="MA03-1" device="" value="Sensor 1"/>
+<part name="J2" library="con-lstb" deviceset="MA03-1" device="" value="Sensor 2"/>
 <part name="GND1" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="JP1" library="SparkFun-Connectors" deviceset="USB" device="PTH" value="USB-B"/>
 <part name="GND2" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
@@ -6755,7 +6755,7 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="GND6" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="GND7" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="SUPPLY1" library="SparkFun-Aesthetics" deviceset="VCC" device=""/>
-<part name="J3" library="con-lstb" deviceset="MA03-1" device=""/>
+<part name="J3" library="con-lstb" deviceset="MA03-1" device="" value="Servo"/>
 <part name="SUPPLY2" library="SparkFun-Aesthetics" deviceset="VCC" device=""/>
 <part name="GND4" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="GND9" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
@@ -6766,9 +6766,6 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="R6" library="rcl" deviceset="R-US_" device="0309/12" value="5.6 Kohm"/>
 <part name="C4" library="SparkFun-Passives" deviceset="CAP" device="PTH" value="0.1 uF"/>
 <part name="C5" library="SparkFun-Passives" deviceset="CAP" device="PTH" value="0.1 uF"/>
-<part name="TOGGLE" library="SparkFun-Connectors" deviceset="M02" device="3.5MM"/>
-<part name="PUSHBUTTON" library="SparkFun-Connectors" deviceset="M02" device="3.5MM"/>
-<part name="LED" library="SparkFun-Connectors" deviceset="M02" device="3.5MM"/>
 <part name="GND11" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="GND8" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="EXPANSION" library="con-lstb" deviceset="MA08-1" device=""/>
@@ -6779,6 +6776,9 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="GND10" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="ELEC-LEFT" library="con-lstb" deviceset="MA06-1" device=""/>
 <part name="ELEC-RIGHT" library="con-lstb" deviceset="MA06-1" device=""/>
+<part name="JP3" library="SparkFun-Connectors" deviceset="M02" device="PTH"/>
+<part name="JP2" library="SparkFun-Connectors" deviceset="M02" device="PTH"/>
+<part name="JP4" library="SparkFun-Connectors" deviceset="M02" device="PTH"/>
 </parts>
 <sheets>
 <sheet>
@@ -6791,7 +6791,7 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <text x="91.44" y="83.82" size="1.778" layer="91">Piezo Buzzer</text>
 <text x="50.8" y="-5.08" size="1.778" layer="91">Note: IC1 pin 7 to GND</text>
 <text x="86.36" y="127" size="1.778" layer="91">Toggle switch</text>
-<text x="119.38" y="60.96" size="1.778" layer="91">MUTE BUTTON</text>
+<text x="116.84" y="60.96" size="1.778" layer="91">MUTE BUTTON</text>
 <text x="116.84" y="48.26" size="1.778" layer="91">LED</text>
 <text x="-99.06" y="12.7" size="1.778" layer="91">+5v</text>
 <text x="-99.06" y="10.16" size="1.778" layer="91">+5v</text>
@@ -6835,9 +6835,6 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <instance part="R6" gate="G$1" x="30.48" y="5.08" rot="R90"/>
 <instance part="C4" gate="G$1" x="-48.26" y="93.98"/>
 <instance part="C5" gate="G$1" x="-35.56" y="93.98"/>
-<instance part="TOGGLE" gate="G$1" x="81.28" y="127" rot="R180"/>
-<instance part="PUSHBUTTON" gate="G$1" x="111.76" y="63.5" rot="R180"/>
-<instance part="LED" gate="G$1" x="111.76" y="48.26" rot="R180"/>
 <instance part="GND11" gate="1" x="66.04" y="119.38" rot="MR0"/>
 <instance part="GND8" gate="1" x="96.52" y="40.64" rot="MR0"/>
 <instance part="EXPANSION" gate="1" x="-91.44" y="2.54"/>
@@ -6848,6 +6845,9 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <instance part="GND10" gate="1" x="60.96" y="88.9"/>
 <instance part="ELEC-LEFT" gate="1" x="-20.32" y="124.46"/>
 <instance part="ELEC-RIGHT" gate="1" x="2.54" y="124.46"/>
+<instance part="JP3" gate="G$1" x="111.76" y="63.5" rot="R180"/>
+<instance part="JP2" gate="G$1" x="111.76" y="48.26" rot="R180"/>
+<instance part="JP4" gate="G$1" x="81.28" y="127" rot="R180"/>
 </instances>
 <busses>
 </busses>
@@ -6915,14 +6915,14 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <pinref part="GND3" gate="1" pin="GND"/>
 </segment>
 <segment>
-<pinref part="PUSHBUTTON" gate="G$1" pin="1"/>
 <pinref part="GND8" gate="1" pin="GND"/>
 <wire x1="104.14" y1="63.5" x2="96.52" y2="63.5" width="0.1524" layer="91"/>
 <wire x1="96.52" y1="63.5" x2="96.52" y2="45.72" width="0.1524" layer="91"/>
-<pinref part="LED" gate="G$1" pin="2"/>
 <wire x1="96.52" y1="45.72" x2="96.52" y2="43.18" width="0.1524" layer="91"/>
 <wire x1="104.14" y1="45.72" x2="96.52" y2="45.72" width="0.1524" layer="91"/>
 <junction x="96.52" y="45.72"/>
+<pinref part="JP3" gate="G$1" pin="1"/>
+<pinref part="JP2" gate="G$1" pin="2"/>
 </segment>
 <segment>
 <pinref part="U$1" gate="G$1" pin="GND@21"/>
@@ -6958,8 +6958,8 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <segment>
 <pinref part="GND11" gate="1" pin="GND"/>
 <wire x1="66.04" y1="121.92" x2="66.04" y2="124.46" width="0.1524" layer="91"/>
-<pinref part="TOGGLE" gate="G$1" pin="2"/>
 <wire x1="66.04" y1="124.46" x2="73.66" y2="124.46" width="0.1524" layer="91"/>
+<pinref part="JP4" gate="G$1" pin="2"/>
 </segment>
 <segment>
 <pinref part="GND13" gate="1" pin="GND"/>
@@ -7097,10 +7097,10 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <net name="N$11" class="0">
 <segment>
 <wire x1="33.02" y1="58.42" x2="33.02" y2="60.96" width="0.1524" layer="91"/>
-<pinref part="PUSHBUTTON" gate="G$1" pin="2"/>
 <wire x1="33.02" y1="60.96" x2="104.14" y2="60.96" width="0.1524" layer="91"/>
 <pinref part="U$1" gate="G$1" pin="D4"/>
 <wire x1="10.16" y1="58.42" x2="33.02" y2="58.42" width="0.1524" layer="91"/>
+<pinref part="JP3" gate="G$1" pin="2"/>
 </segment>
 </net>
 <net name="N$16" class="0">
@@ -7161,8 +7161,8 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <wire x1="27.94" y1="43.18" x2="27.94" y2="127" width="0.1524" layer="91"/>
 <pinref part="U$1" gate="G$1" pin="D1"/>
 <wire x1="10.16" y1="43.18" x2="27.94" y2="43.18" width="0.1524" layer="91"/>
-<pinref part="TOGGLE" gate="G$1" pin="1"/>
 <wire x1="27.94" y1="127" x2="73.66" y2="127" width="0.1524" layer="91"/>
+<pinref part="JP4" gate="G$1" pin="1"/>
 </segment>
 </net>
 <net name="N$1" class="0">
@@ -7174,9 +7174,9 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 </net>
 <net name="N$10" class="0">
 <segment>
-<pinref part="LED" gate="G$1" pin="1"/>
 <pinref part="R1" gate="G$1" pin="2"/>
 <wire x1="104.14" y1="48.26" x2="91.44" y2="48.26" width="0.1524" layer="91"/>
+<pinref part="JP2" gate="G$1" pin="1"/>
 </segment>
 </net>
 <net name="N$3" class="0">
