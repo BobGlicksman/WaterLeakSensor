@@ -6871,7 +6871,7 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="C3" library="SparkFun-Passives" deviceset="CAP" device="PTH" value="0.1 uF"/>
 <part name="GND3" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="IC1" library="74xx-us" deviceset="74*125" device="N" value="74AHCT125"/>
-<part name="R1" library="rcl" deviceset="R-US_" device="0309/12" value="330 ohm"/>
+<part name="R1" library="rcl" deviceset="R-US_" device="0309/12" value="470 ohm"/>
 <part name="SP2" library="buzzer" deviceset="AL11P" device=""/>
 <part name="GND5" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="U$2" library="Spark" deviceset="DHT22" device=""/>
@@ -6882,11 +6882,11 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="SUPPLY2" library="SparkFun-Aesthetics" deviceset="VCC" device=""/>
 <part name="GND4" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="GND9" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
-<part name="R2" library="rcl" deviceset="R-US_" device="0309/12" value="5.6 Kohm"/>
-<part name="R3" library="rcl" deviceset="R-US_" device="0309/12" value="5.6 Kohm"/>
-<part name="R4" library="rcl" deviceset="R-US_" device="0309/12" value="5.6 Kohm"/>
-<part name="R5" library="rcl" deviceset="R-US_" device="0309/12" value="5.6 Kohm"/>
-<part name="R6" library="rcl" deviceset="R-US_" device="0309/12" value="5.6 Kohm"/>
+<part name="R2" library="rcl" deviceset="R-US_" device="0309/12" value="4.7 Kohm"/>
+<part name="R3" library="rcl" deviceset="R-US_" device="0309/12" value="4.7 Kohm"/>
+<part name="R4" library="rcl" deviceset="R-US_" device="0309/12" value="4.7 Kohm"/>
+<part name="R5" library="rcl" deviceset="R-US_" device="0309/12" value="4.7 Kohm"/>
+<part name="R6" library="rcl" deviceset="R-US_" device="0309/12" value="4.7 Kohm"/>
 <part name="C4" library="SparkFun-Passives" deviceset="CAP" device="PTH" value="0.1 uF"/>
 <part name="C5" library="SparkFun-Passives" deviceset="CAP" device="PTH" value="0.1 uF"/>
 <part name="GND11" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
