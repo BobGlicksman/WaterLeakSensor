@@ -36,11 +36,11 @@
 
     (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
 ***********************************************************************************************************/
-#define IFTTT_NOTIFY    // comment out if IFTTT alarm notification is not desired
-//#define BLYNK_NOTIFY    // comment out if you do not want Blynk to be active
+//#define IFTTT_NOTIFY    // comment out if IFTTT alarm notification is not desired
+#define BLYNK_NOTIFY    // comment out if you do not want Blynk to be active
 
 #include <PietteTech_DHT.h> // non-blocking library for DHT11
-
+#include <blynk.h>  // Blynk library
 
 // Constants and definitions
 #define DHTTYPE  DHT11              // Sensor type DHT11/21/22/AM2301/AM2302
@@ -54,7 +54,7 @@ const int DHTPIN = D2;        	    // Digital pin for communications
 const int TOGGLE_PIN = D1;               // pin for temperature/humidity toggle switch
 const int SERVO_PIN = A5;                // servo pin
 #define DHT_SAMPLE_INTERVAL   4000  // Sample every 4 seconds
-#define PARTICLE_PUBLISH_INTERVAL 60000 // Publish values every 60 seconds
+#define PARTICLE_PUBLISH_INTERVAL 8000 // Publish values every 8 seconds
 const float WATER_LEVEL_THRESHOLD = 0.5;    // 0.5 volts or higher on either sensor triggers alarm
 
 // servo calibration values
@@ -89,7 +89,7 @@ Servo myservo;  // create servo object to control a servo
 #ifdef BLYNK_NOTIFY
 //blynk
 #include "blynk.h"
-char auth[] = "YOUR BLYNK AUTH CODE HERE"; // DO NOT CHECK IN YOUR BLYNK AUTH!!
+char auth[] = "835d7128633c4b6a8a8ab6ef4031fbfe"; // DO NOT CHECK IN YOUR BLYNK AUTH!!
 #define BLYNK_VPIN_HUMIDITY V5
 #define BLYNK_VPIN_TEMPERATURE V6
 #define BLYNK_VPIN_TEMPERATURE_2 V7
