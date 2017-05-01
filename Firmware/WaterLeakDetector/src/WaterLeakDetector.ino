@@ -30,9 +30,12 @@
 
         This version of code also also includes a diff() function for computing time differences using
         millis(), for use in non-blocking delay functionality.
+        
+        This version includes all of Jim's Blynk integration code plus coding for a second alarm notification
+        30 seconds after the first alarm notification'
 
 
-    author: Bob Glicksman, Jim Schrempp; 03/22/2017
+    author: Bob Glicksman, Jim Schrempp; 05/01/2017
 
     (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
 ***********************************************************************************************************/
@@ -54,7 +57,8 @@ const int DHTPIN = D2;        	    // Digital pin for communications
 const int TOGGLE_PIN = D1;               // pin for temperature/humidity toggle switch
 const int SERVO_PIN = A5;                // servo pin
 #define DHT_SAMPLE_INTERVAL   4000  // Sample every 4 seconds
-#define PARTICLE_PUBLISH_INTERVAL 8000 // Publish values every 8 seconds
+#define PARTICLE_PUBLISH_INTERVAL 60000 // Publish values every 60 seconds
+#define SECOND_NOTIFY_DELAY 30000  // the second alarm notification comes 30 seconds after the first notification
 const float WATER_LEVEL_THRESHOLD = 0.5;    // 0.5 volts or higher on either sensor triggers alarm
 
 // servo calibration values
@@ -89,7 +93,7 @@ Servo myservo;  // create servo object to control a servo
 #ifdef BLYNK_NOTIFY
 //blynk
 #include "blynk.h"
-char auth[] = "835d7128633c4b6a8a8ab6ef4031fbfe"; // DO NOT CHECK IN YOUR BLYNK AUTH!!
+char auth[] = "YOUR AUTH TOKEN GOES HERE"; // DO NOT CHECK IN YOUR BLYNK AUTH!!
 #define BLYNK_VPIN_HUMIDITY V5
 #define BLYNK_VPIN_TEMPERATURE V6
 #define BLYNK_VPIN_TEMPERATURE_2 V7
@@ -266,11 +270,25 @@ void loop() {
 
     // If we have an alarm, then send a notification
     static bool alarmSent = false;
+    static bool firstNotification = false;  // indicator to use for a second alarm notification
+    static unsigned long firstNotifyTime;
+    
     if (alarm && !alarmSent) {
         alarmSent = true;
         blynkRaiseAlarm();
+        
+        // set conditions for the second alarm notification
+        firstNotification = true;
+        firstNotifyTime = millis();
     }
 
+    // process the second alarm notification after the first alarm notification
+    if( (firstNotification == true) && (diff(millis(), firstNotifyTime) >= SECOND_NOTIFY_DELAY) )  {
+        blynkRaiseAlarm();
+        firstNotification = false;
+    }
+    
+    
     // process the mute pushbutton
     if(readPushButton() == true) {
         mute = true; // set the alarm mute flag
