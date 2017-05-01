@@ -32,7 +32,10 @@
         millis(), for use in non-blocking delay functionality.
         
         This version includes all of Jim's Blynk integration code plus coding for a second alarm notification
-        30 seconds after the first alarm notification'
+        30 seconds after the first alarm notification.
+        
+        This version also fixes a bug in the previous Blynk integration code for proper handling of
+        sending an alarm.
 
 
     author: Bob Glicksman, Jim Schrempp; 05/01/2017
@@ -93,7 +96,7 @@ Servo myservo;  // create servo object to control a servo
 #ifdef BLYNK_NOTIFY
 //blynk
 #include "blynk.h"
-char auth[] = "YOUR AUTH TOKEN GOES HERE"; // DO NOT CHECK IN YOUR BLYNK AUTH!!
+char auth[] = "YOUR BLYNK AUTH TOKEN GOES HERE"; // DO NOT CHECK IN YOUR BLYNK AUTH!!
 #define BLYNK_VPIN_HUMIDITY V5
 #define BLYNK_VPIN_TEMPERATURE V6
 #define BLYNK_VPIN_TEMPERATURE_2 V7
@@ -154,6 +157,8 @@ void loop() {
     static boolean newData = false; // flag to indicate DHT11 has new data
     static boolean toggle = false;  // hold the reading of the toggle switch; false for humidity, true for temperature
     static boolean lastToggle = false;  // hold the previous reading of the toggle switch
+    static boolean firstNotification = false;  // indicator to use for a second alarm notification
+   	static unsigned long firstNotifyTime;	// record time of first notification to time the second one
 
     // Non-blocking read of DHT11 data and publish and display it
     float currentTemp, currentHumidity;
@@ -181,7 +186,7 @@ void loop() {
 
     int sensorStatus = readDHT(false);  // refresh the sensor status but don't start a new reading
 
-  if(sensorStatus != ACQUIRING) {
+	if(sensorStatus != ACQUIRING) {
       if(newData == true) { // we have new data
         currentTemp = DHT.getFahrenheit();
         currentHumidity = DHT.getHumidity();
@@ -264,23 +269,20 @@ void loop() {
            if((indicator == true) && (indicator != previousAlarmState)) {
              Particle.publish("Water leak alarm", Time.timeStr(Time.now()) + " Z");
            }
-           previousAlarmState = indicator; // update old alarm state to present state
          #endif
+    
+    	// If we have a new alarm, then send a Blynk notification   
+ 		if((indicator == true) && (indicator != previousAlarmState)) {
+        	blynkRaiseAlarm();
+        
+        	// set conditions for the second alarm notification
+        	firstNotification = true;
+        	firstNotifyTime = millis();
+    	}
+    	
+    	previousAlarmState = indicator; // update old alarm state to present state                     
     }
 
-    // If we have an alarm, then send a notification
-    static bool alarmSent = false;
-    static bool firstNotification = false;  // indicator to use for a second alarm notification
-    static unsigned long firstNotifyTime;
-    
-    if (alarm && !alarmSent) {
-        alarmSent = true;
-        blynkRaiseAlarm();
-        
-        // set conditions for the second alarm notification
-        firstNotification = true;
-        firstNotifyTime = millis();
-    }
 
     // process the second alarm notification after the first alarm notification
     if( (firstNotification == true) && (diff(millis(), firstNotifyTime) >= SECOND_NOTIFY_DELAY) )  {
@@ -293,7 +295,6 @@ void loop() {
     if(readPushButton() == true) {
         mute = true; // set the alarm mute flag
         alarm = false; // mute the alarm right now
-        alarmSent = false; // reset the alarm send flag
     }
 
     // refresh non-blocking alarm & indicator status
