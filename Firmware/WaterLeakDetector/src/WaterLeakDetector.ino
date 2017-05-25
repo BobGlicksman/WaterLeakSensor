@@ -30,17 +30,23 @@
 
         This version of code also also includes a diff() function for computing time differences using
         millis(), for use in non-blocking delay functionality.
+        
+        This version includes all of Jim's Blynk integration code plus coding for a second alarm notification
+        30 seconds after the first alarm notification.
+        
+        This version also fixes a bug in the previous Blynk integration code for proper handling of
+        sending an alarm.
 
 
-    author: Bob Glicksman, Jim Schrempp; 03/22/2017
+    author: Bob Glicksman, Jim Schrempp; 05/01/2017
 
     (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
 ***********************************************************************************************************/
-#define IFTTT_NOTIFY    // comment out if IFTTT alarm notification is not desired
-//#define BLYNK_NOTIFY    // comment out if you do not want Blynk to be active
+//#define IFTTT_NOTIFY    // comment out if IFTTT alarm notification is not desired
+#define BLYNK_NOTIFY    // comment out if you do not want Blynk to be active
 
 #include <PietteTech_DHT.h> // non-blocking library for DHT11
-
+#include <blynk.h>  // Blynk library
 
 // Constants and definitions
 #define DHTTYPE  DHT11              // Sensor type DHT11/21/22/AM2301/AM2302
@@ -55,6 +61,7 @@ const int TOGGLE_PIN = D1;               // pin for temperature/humidity toggle 
 const int SERVO_PIN = A5;                // servo pin
 #define DHT_SAMPLE_INTERVAL   4000  // Sample every 4 seconds
 #define PARTICLE_PUBLISH_INTERVAL 60000 // Publish values every 60 seconds
+#define SECOND_NOTIFY_DELAY 30000  // the second alarm notification comes 30 seconds after the first notification
 const float WATER_LEVEL_THRESHOLD = 0.5;    // 0.5 volts or higher on either sensor triggers alarm
 
 // servo calibration values
@@ -89,7 +96,7 @@ Servo myservo;  // create servo object to control a servo
 #ifdef BLYNK_NOTIFY
 //blynk
 #include "blynk.h"
-char auth[] = "YOUR BLYNK AUTH CODE HERE"; // DO NOT CHECK IN YOUR BLYNK AUTH!!
+char auth[] = "YOUR BLYNK AUTH TOKEN GOES HERE"; // DO NOT CHECK IN YOUR BLYNK AUTH!!
 #define BLYNK_VPIN_HUMIDITY V5
 #define BLYNK_VPIN_TEMPERATURE V6
 #define BLYNK_VPIN_TEMPERATURE_2 V7
@@ -150,6 +157,8 @@ void loop() {
     static boolean newData = false; // flag to indicate DHT11 has new data
     static boolean toggle = false;  // hold the reading of the toggle switch; false for humidity, true for temperature
     static boolean lastToggle = false;  // hold the previous reading of the toggle switch
+    static boolean firstNotification = false;  // indicator to use for a second alarm notification
+   	static unsigned long firstNotifyTime;	// record time of first notification to time the second one
 
     // Non-blocking read of DHT11 data and publish and display it
     float currentTemp, currentHumidity;
@@ -177,7 +186,7 @@ void loop() {
 
     int sensorStatus = readDHT(false);  // refresh the sensor status but don't start a new reading
 
-  if(sensorStatus != ACQUIRING) {
+	if(sensorStatus != ACQUIRING) {
       if(newData == true) { // we have new data
         currentTemp = DHT.getFahrenheit();
         currentHumidity = DHT.getHumidity();
@@ -260,22 +269,32 @@ void loop() {
            if((indicator == true) && (indicator != previousAlarmState)) {
              Particle.publish("Water leak alarm", Time.timeStr(Time.now()) + " Z");
            }
-           previousAlarmState = indicator; // update old alarm state to present state
          #endif
+    
+    	// If we have a new alarm, then send a Blynk notification   
+ 		if((indicator == true) && (indicator != previousAlarmState)) {
+        	blynkRaiseAlarm();
+        
+        	// set conditions for the second alarm notification
+        	firstNotification = true;
+        	firstNotifyTime = millis();
+    	}
+    	
+    	previousAlarmState = indicator; // update old alarm state to present state                     
     }
 
-    // If we have an alarm, then send a notification
-    static bool alarmSent = false;
-    if (alarm && !alarmSent) {
-        alarmSent = true;
+
+    // process the second alarm notification after the first alarm notification
+    if( (firstNotification == true) && (diff(millis(), firstNotifyTime) >= SECOND_NOTIFY_DELAY) )  {
         blynkRaiseAlarm();
+        firstNotification = false;
     }
-
+    
+    
     // process the mute pushbutton
     if(readPushButton() == true) {
         mute = true; // set the alarm mute flag
         alarm = false; // mute the alarm right now
-        alarmSent = false; // reset the alarm send flag
     }
 
     // refresh non-blocking alarm & indicator status
