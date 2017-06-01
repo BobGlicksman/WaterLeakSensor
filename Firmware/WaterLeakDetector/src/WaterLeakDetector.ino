@@ -30,10 +30,10 @@
 
         This version of code also also includes a diff() function for computing time differences using
         millis(), for use in non-blocking delay functionality.
-        
+
         This version includes all of Jim's Blynk integration code plus coding for a second alarm notification
         30 seconds after the first alarm notification.
-        
+
         This version also fixes a bug in the previous Blynk integration code for proper handling of
         sending an alarm.
 
@@ -41,6 +41,8 @@
     author: Bob Glicksman, Jim Schrempp; 05/01/2017
 
     (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
+
+20170530a: Added Blynk application notification of water detection with Blynk Terminal and LED.
 ***********************************************************************************************************/
 //#define IFTTT_NOTIFY    // comment out if IFTTT alarm notification is not desired
 #define BLYNK_NOTIFY    // comment out if you do not want Blynk to be active
@@ -98,8 +100,13 @@ Servo myservo;  // create servo object to control a servo
 #include "blynk.h"
 char auth[] = "YOUR BLYNK AUTH TOKEN GOES HERE"; // DO NOT CHECK IN YOUR BLYNK AUTH!!
 #define BLYNK_VPIN_HUMIDITY V5
-#define BLYNK_VPIN_TEMPERATURE V6
-#define BLYNK_VPIN_TEMPERATURE_2 V7
+#define BLYNK_VPIN_TEMPERATURE V7
+#define BLYNK_VPIN_ALARM V6
+#define BLYNK_VPIN_TERMINAL V4
+
+WidgetLED blynkLED1(BLYNK_VPIN_ALARM);
+
+
 // These functions are called by Blynk application widgets to get the value of
 // a "Virtual Pin"
 BLYNK_READ(BLYNK_VPIN_HUMIDITY)
@@ -112,18 +119,56 @@ BLYNK_READ(BLYNK_VPIN_TEMPERATURE)
     Blynk.virtualWrite(BLYNK_VPIN_TEMPERATURE, mg_smoothedTemp);
 }
 
-BLYNK_READ(BLYNK_VPIN_TEMPERATURE_2)
-{
-    Blynk.virtualWrite(BLYNK_VPIN_TEMPERATURE_2, mg_smoothedTemp);
-}
+
 #endif
 
-// We leave the method call so that we don't have to ifdef every place it might be
+// Utility functions
+
+String dateTimeString(){
+    time_t timeNow = Time.now();
+    String dateTime = Time.format(timeNow,TIME_FORMAT_DEFAULT) + " UTC";
+    return dateTime;
+}
+
+// We leave the method calls so that we don't have to ifdef every place it might be
 // called in the code.
 void blynkRaiseAlarm()
 {
 #ifdef BLYNK_NOTIFY
     Blynk.notify("WARNING: Water leak detected.");
+
+    blynkWriteTerminal("WATER LEAK DETECTED: ");
+    blynkWriteTerminal(dateTimeString() + "\r\n");
+#endif
+}
+
+void blynkWaterDetected(boolean detected)
+{
+#ifdef BLYNK_NOTIFY
+    if (detected)
+    {
+        blynkLED1.on();
+    } else
+    {
+        blynkLED1.off();
+    }
+#endif
+}
+
+void blynkReportRestart()
+{
+#ifdef BLYNK_NOTIFY
+    blynkWriteTerminal("---------\r\n");
+    blynkWriteTerminal("WLD restarted: ");
+    blynkWriteTerminal(dateTimeString() + "\r\n");
+#endif
+}
+
+
+void blynkWriteTerminal(String msg)
+{
+#ifdef BLYNK_NOTIFY
+    Blynk.virtualWrite(BLYNK_VPIN_TERMINAL,msg);
 #endif
 }
 
@@ -142,6 +187,8 @@ void setup() {
 
 #ifdef BLYNK_NOTIFY
     Blynk.begin(auth);
+    blynkReportRestart();
+    blynkLED1.off();
 #endif
 
 }  // end of setup()
@@ -166,6 +213,12 @@ void loop() {
 #ifdef BLYNK_NOTIFY
     Blynk.run();
 #endif
+
+    static boolean onceUponRestart = true;
+    if (onceUponRestart){
+        onceUponRestart = false;
+
+    }
 
     //  read the toggle switch position and set the boolean for type of display accordingly
     if(digitalRead(TOGGLE_PIN) == LOW)  {   // indicates a temperature reading
@@ -253,6 +306,7 @@ void loop() {
         // integrate and threshold measurement for alarm
         if(alarmIntegrator(waterSensorVoltageA, waterSensorVoltageB) == true) {
             indicator = true;
+            blynkWaterDetected(true);
             if(mute == false) {
                 alarm = true;
             } else {
@@ -260,6 +314,7 @@ void loop() {
             }
         } else {
             indicator = false;
+            blynkWaterDetected(false);
             alarm = false;
             mute = false;   // reset alarm muting
         }
@@ -270,17 +325,17 @@ void loop() {
              Particle.publish("Water leak alarm", Time.timeStr(Time.now()) + " Z");
            }
          #endif
-    
-    	// If we have a new alarm, then send a Blynk notification   
+
+    	// If we have a new alarm, then send a Blynk notification
  		if((indicator == true) && (indicator != previousAlarmState)) {
         	blynkRaiseAlarm();
-        
+
         	// set conditions for the second alarm notification
         	firstNotification = true;
         	firstNotifyTime = millis();
     	}
-    	
-    	previousAlarmState = indicator; // update old alarm state to present state                     
+
+    	previousAlarmState = indicator; // update old alarm state to present state
     }
 
 
@@ -289,8 +344,8 @@ void loop() {
         blynkRaiseAlarm();
         firstNotification = false;
     }
-    
-    
+
+
     // process the mute pushbutton
     if(readPushButton() == true) {
         mute = true; // set the alarm mute flag
