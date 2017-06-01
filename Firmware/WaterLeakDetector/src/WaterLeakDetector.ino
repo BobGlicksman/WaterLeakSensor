@@ -30,10 +30,10 @@
 
         This version of code also also includes a diff() function for computing time differences using
         millis(), for use in non-blocking delay functionality.
-        
+
         This version includes all of Jim's Blynk integration code plus coding for a second alarm notification
         30 seconds after the first alarm notification.
-        
+
         This version also fixes a bug in the previous Blynk integration code for proper handling of
         sending an alarm.
 
@@ -44,11 +44,7 @@
 
 20170530a: Added Blynk application notification of water detection with Blynk Terminal and LED.
 ***********************************************************************************************************/
-<<<<<<< HEAD
-#define IFTTT_NOTIFY    // comment out if IFTTT alarm notification is not desired
-=======
 //#define IFTTT_NOTIFY    // comment out if IFTTT alarm notification is not desired
->>>>>>> 512ba9f766df889d14a7dfa5d749090a8e301abc
 #define BLYNK_NOTIFY    // comment out if you do not want Blynk to be active
 
 #include <PietteTech_DHT.h> // non-blocking library for DHT11
@@ -102,11 +98,7 @@ Servo myservo;  // create servo object to control a servo
 #ifdef BLYNK_NOTIFY
 //blynk
 #include "blynk.h"
-<<<<<<< HEAD
-char auth[] =  "YOUR BLYNK AUTH CODE HERE"; // DO NOT CHECK IN YOUR BLYNK AUTH!!
-=======
 char auth[] = "YOUR BLYNK AUTH TOKEN GOES HERE"; // DO NOT CHECK IN YOUR BLYNK AUTH!!
->>>>>>> 512ba9f766df889d14a7dfa5d749090a8e301abc
 #define BLYNK_VPIN_HUMIDITY V5
 #define BLYNK_VPIN_TEMPERATURE V7
 #define BLYNK_VPIN_ALARM V6
@@ -333,17 +325,17 @@ void loop() {
              Particle.publish("Water leak alarm", Time.timeStr(Time.now()) + " Z");
            }
          #endif
-    
-    	// If we have a new alarm, then send a Blynk notification   
+
+    	// If we have a new alarm, then send a Blynk notification
  		if((indicator == true) && (indicator != previousAlarmState)) {
         	blynkRaiseAlarm();
-        
+
         	// set conditions for the second alarm notification
         	firstNotification = true;
         	firstNotifyTime = millis();
     	}
-    	
-    	previousAlarmState = indicator; // update old alarm state to present state                     
+
+    	previousAlarmState = indicator; // update old alarm state to present state
     }
 
 
@@ -352,8 +344,8 @@ void loop() {
         blynkRaiseAlarm();
         firstNotification = false;
     }
-    
-    
+
+
     // process the mute pushbutton
     if(readPushButton() == true) {
         mute = true; // set the alarm mute flag
