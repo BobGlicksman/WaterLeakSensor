@@ -98,7 +98,7 @@ Servo myservo;  // create servo object to control a servo
 #ifdef BLYNK_NOTIFY
 //blynk
 #include "blynk.h"
-char auth[] = "YOUR BLYNK AUTH TOKEN GOES HERE"; // DO NOT CHECK IN YOUR BLYNK AUTH!!
+char auth[] = YOUR BLYNK AUTH TOKEN GOES HERE  // DO NOT CHECK IN YOUR BLYNK AUTH!!
 #define BLYNK_VPIN_HUMIDITY V5
 #define BLYNK_VPIN_TEMPERATURE V7
 #define BLYNK_VPIN_ALARM V6
@@ -135,9 +135,12 @@ String dateTimeString(){
 void blynkRaiseAlarm()
 {
 #ifdef BLYNK_NOTIFY
-    Blynk.notify("WARNING: Water leak detected.");
+    static int notifyCount = 0;
+    notifyCount++;
+    String blynkWarning = "WARNING: Water leak detected (" + String(notifyCount) + ") ";
+    Blynk.notify(blynkWarning);
 
-    blynkWriteTerminal("WATER LEAK DETECTED: ");
+    blynkWriteTerminal(blynkWarning);
     blynkWriteTerminal(dateTimeString() + "\r\n");
 #endif
 }
