@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="7.4.0">
+<eagle version="8.2.1">
 <drawing>
 <settings>
 <setting alwaysvectorfont="yes"/>
@@ -9,6 +9,20 @@
 <grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
 <layers>
 <layer number="1" name="Top" color="4" fill="1" visible="no" active="no"/>
+<layer number="2" name="Route2" color="1" fill="3" visible="no" active="no"/>
+<layer number="3" name="Route3" color="4" fill="3" visible="no" active="no"/>
+<layer number="4" name="Route4" color="1" fill="4" visible="no" active="no"/>
+<layer number="5" name="Route5" color="4" fill="4" visible="no" active="no"/>
+<layer number="6" name="Route6" color="1" fill="8" visible="no" active="no"/>
+<layer number="7" name="Route7" color="4" fill="8" visible="no" active="no"/>
+<layer number="8" name="Route8" color="1" fill="2" visible="no" active="no"/>
+<layer number="9" name="Route9" color="4" fill="2" visible="no" active="no"/>
+<layer number="10" name="Route10" color="1" fill="7" visible="no" active="no"/>
+<layer number="11" name="Route11" color="4" fill="7" visible="no" active="no"/>
+<layer number="12" name="Route12" color="1" fill="5" visible="no" active="no"/>
+<layer number="13" name="Route13" color="4" fill="5" visible="no" active="no"/>
+<layer number="14" name="Route14" color="1" fill="6" visible="no" active="no"/>
+<layer number="15" name="Route15" color="4" fill="6" visible="no" active="no"/>
 <layer number="16" name="Bottom" color="1" fill="1" visible="no" active="no"/>
 <layer number="17" name="Pads" color="2" fill="1" visible="no" active="no"/>
 <layer number="18" name="Vias" color="2" fill="1" visible="no" active="no"/>
@@ -6245,70 +6259,6 @@ Source: http://www.murata.com .. GRM43DR72E224KW01.pdf</description>
 </deviceset>
 </devicesets>
 </library>
-<library name="buzzer">
-<description>&lt;b&gt;Speakers and Buzzers&lt;/b&gt;&lt;p&gt;
-&lt;ul&gt;Distributors:
-&lt;li&gt;Buerklin
-&lt;li&gt;Spoerle
-&lt;li&gt;Schukat
-&lt;/ul&gt;
-&lt;author&gt;Created by librarian@cadsoft.de&lt;/author&gt;</description>
-<packages>
-<package name="AL11P">
-<description>&lt;b&gt;SPEAKER&lt;/b&gt;</description>
-<circle x="0" y="0" radius="5.715" width="0.1524" layer="21"/>
-<circle x="0" y="0" radius="6.223" width="0.1524" layer="21"/>
-<circle x="0" y="0" radius="1.016" width="0.1524" layer="21"/>
-<pad name="-" x="-2.286" y="0" drill="1.016" diameter="1.905" shape="octagon"/>
-<pad name="+" x="2.286" y="0" drill="1.016" diameter="1.905" shape="octagon"/>
-<text x="-3.175" y="6.35" size="1.27" layer="25" ratio="10">&gt;NAME</text>
-<text x="-3.81" y="-3.175" size="1.27" layer="27" ratio="10">&gt;VALUE</text>
-</package>
-</packages>
-<symbols>
-<symbol name="SP">
-<wire x1="-1.905" y1="-0.635" x2="1.905" y2="-0.635" width="0.254" layer="94"/>
-<wire x1="1.905" y1="-0.635" x2="1.905" y2="0" width="0.254" layer="94"/>
-<wire x1="1.905" y1="2.54" x2="-1.905" y2="2.54" width="0.254" layer="94"/>
-<wire x1="-1.905" y1="-0.635" x2="-1.905" y2="0" width="0.254" layer="94"/>
-<wire x1="1.905" y1="2.54" x2="5.08" y2="5.08" width="0.254" layer="94"/>
-<wire x1="5.08" y1="5.08" x2="-5.08" y2="5.08" width="0.254" layer="94"/>
-<wire x1="-1.905" y1="2.54" x2="-5.08" y2="5.08" width="0.254" layer="94"/>
-<wire x1="2.54" y1="0" x2="1.905" y2="0" width="0.1524" layer="94"/>
-<wire x1="1.905" y1="0" x2="1.905" y2="2.54" width="0.254" layer="94"/>
-<wire x1="-2.54" y1="0" x2="-1.905" y2="0" width="0.1524" layer="94"/>
-<wire x1="-1.905" y1="0" x2="-1.905" y2="2.54" width="0.254" layer="94"/>
-<text x="-3.81" y="6.35" size="1.778" layer="95">&gt;NAME</text>
-<text x="-3.81" y="-3.175" size="1.778" layer="96">&gt;VALUE</text>
-<pin name="2" x="5.08" y="0" visible="pad" length="short" direction="pas" rot="R180"/>
-<pin name="1" x="-5.08" y="0" visible="pad" length="short" direction="pas"/>
-</symbol>
-</symbols>
-<devicesets>
-<deviceset name="AL11P" prefix="SP">
-<description>&lt;b&gt;SPEAKER&lt;/b&gt;&lt;p&gt; Source: Buerklin</description>
-<gates>
-<gate name="G$1" symbol="SP" x="0" y="0"/>
-</gates>
-<devices>
-<device name="" package="AL11P">
-<connects>
-<connect gate="G$1" pin="1" pad="-"/>
-<connect gate="G$1" pin="2" pad="+"/>
-</connects>
-<technologies>
-<technology name="">
-<attribute name="MF" value="" constant="no"/>
-<attribute name="MPN" value="" constant="no"/>
-<attribute name="OC_FARNELL" value="unknown" constant="no"/>
-<attribute name="OC_NEWARK" value="unknown" constant="no"/>
-</technology>
-</technologies>
-</device>
-</devices>
-</deviceset>
-</devicesets>
-</library>
 <library name="SparkFun-Capacitors">
 <description>&lt;h3&gt;SparkFun Electronics' preferred foot prints&lt;/h3&gt;
 In this library you'll find resistors, capacitors, inductors, test points, jumper pads, etc.&lt;br&gt;&lt;br&gt;
@@ -6852,6 +6802,68 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 </deviceset>
 </devicesets>
 </library>
+<library name="buzzer" urn="urn:adsk.eagle:library:113">
+<description>&lt;b&gt;Speakers and Buzzers&lt;/b&gt;&lt;p&gt;
+&lt;ul&gt;Distributors:
+&lt;li&gt;Buerklin
+&lt;li&gt;Spoerle
+&lt;li&gt;Schukat
+&lt;/ul&gt;
+&lt;author&gt;Created by librarian@cadsoft.de&lt;/author&gt;</description>
+<packages>
+<package name="F/HMB" library_version="1">
+<description>&lt;b&gt;BUZZER&lt;/b&gt;</description>
+<wire x1="3.175" y1="3.175" x2="4.445" y2="3.175" width="0.254" layer="21"/>
+<wire x1="3.81" y1="2.54" x2="3.81" y2="3.81" width="0.254" layer="21"/>
+<circle x="0" y="0" radius="7.0104" width="0.1524" layer="21"/>
+<circle x="0" y="0" radius="8.001" width="0.1524" layer="21"/>
+<circle x="0" y="0" radius="1.27" width="0.1524" layer="21"/>
+<circle x="3.81" y="3.175" radius="1.27" width="0.1524" layer="21"/>
+<pad name="-" x="-3.81" y="0" drill="1.016" diameter="2.54" shape="octagon"/>
+<pad name="+" x="3.81" y="0" drill="1.016" diameter="2.54" shape="octagon"/>
+<text x="4.445" y="6.985" size="1.27" layer="25" ratio="10">&gt;NAME</text>
+<text x="-4.445" y="-3.81" size="1.27" layer="27" ratio="10">&gt;VALUE</text>
+</package>
+</packages>
+<symbols>
+<symbol name="B" library_version="1">
+<wire x1="-2.54" y1="5.08" x2="5.08" y2="5.08" width="0.254" layer="94" curve="180"/>
+<wire x1="-2.54" y1="5.08" x2="1.27" y2="5.08" width="0.254" layer="94"/>
+<wire x1="1.27" y1="1.27" x2="1.27" y2="5.08" width="0.1524" layer="94"/>
+<wire x1="1.27" y1="5.08" x2="5.08" y2="5.08" width="0.254" layer="94"/>
+<wire x1="2.54" y1="-2.54" x2="2.54" y2="1.397" width="0.1524" layer="94"/>
+<wire x1="0" y1="-2.54" x2="0" y2="1.397" width="0.1524" layer="94"/>
+<text x="-2.54" y="6.35" size="1.778" layer="95">&gt;NAME</text>
+<text x="5.08" y="0" size="1.778" layer="96">&gt;VALUE</text>
+<pin name="-" x="5.08" y="-2.54" visible="pad" length="short" direction="pas" rot="R180"/>
+<pin name="+" x="-2.54" y="-2.54" visible="pad" length="short" direction="pas"/>
+</symbol>
+</symbols>
+<devicesets>
+<deviceset name="F/HMB" prefix="SG" library_version="1">
+<description>&lt;b&gt;BUZZER&lt;/b&gt;&lt;p&gt; Source: Buerklin</description>
+<gates>
+<gate name="G$1" symbol="B" x="0" y="0"/>
+</gates>
+<devices>
+<device name="" package="F/HMB">
+<connects>
+<connect gate="G$1" pin="+" pad="+"/>
+<connect gate="G$1" pin="-" pad="-"/>
+</connects>
+<technologies>
+<technology name="">
+<attribute name="MF" value="" constant="no"/>
+<attribute name="MPN" value="" constant="no"/>
+<attribute name="OC_FARNELL" value="unknown" constant="no"/>
+<attribute name="OC_NEWARK" value="unknown" constant="no"/>
+</technology>
+</technologies>
+</device>
+</devices>
+</deviceset>
+</devicesets>
+</library>
 </libraries>
 <attributes>
 </attributes>
@@ -6871,22 +6883,21 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="C3" library="SparkFun-Passives" deviceset="CAP" device="PTH" value="0.1 uF"/>
 <part name="GND3" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="IC1" library="74xx-us" deviceset="74*125" device="N" value="74AHCT125"/>
-<part name="R1" library="rcl" deviceset="R-US_" device="0309/12" value="470 ohm"/>
-<part name="SP2" library="buzzer" deviceset="AL11P" device=""/>
+<part name="R1" library="rcl" deviceset="R-US_" device="0309/12" value="470"/>
 <part name="GND5" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="U$2" library="Spark" deviceset="DHT22" device=""/>
 <part name="GND6" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="GND7" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="SUPPLY1" library="SparkFun-Aesthetics" deviceset="VCC" device=""/>
-<part name="J3" library="con-lstb" deviceset="MA03-1" device="" value="Servo"/>
+<part name="J3" library="con-lstb" deviceset="MA03-1" device="" value="SERVO"/>
 <part name="SUPPLY2" library="SparkFun-Aesthetics" deviceset="VCC" device=""/>
 <part name="GND4" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="GND9" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
-<part name="R2" library="rcl" deviceset="R-US_" device="0309/12" value="4.7 Kohm"/>
-<part name="R3" library="rcl" deviceset="R-US_" device="0309/12" value="4.7 Kohm"/>
-<part name="R4" library="rcl" deviceset="R-US_" device="0309/12" value="4.7 Kohm"/>
-<part name="R5" library="rcl" deviceset="R-US_" device="0309/12" value="4.7 Kohm"/>
-<part name="R6" library="rcl" deviceset="R-US_" device="0309/12" value="4.7 Kohm"/>
+<part name="R2" library="rcl" deviceset="R-US_" device="0309/12" value="4.7K"/>
+<part name="R3" library="rcl" deviceset="R-US_" device="0309/12" value="4.7K"/>
+<part name="R4" library="rcl" deviceset="R-US_" device="0309/12" value="4.7K"/>
+<part name="R5" library="rcl" deviceset="R-US_" device="0309/12" value="4.7K"/>
+<part name="R6" library="rcl" deviceset="R-US_" device="0309/12" value="4.7K"/>
 <part name="C4" library="SparkFun-Passives" deviceset="CAP" device="PTH" value="0.1 uF"/>
 <part name="C5" library="SparkFun-Passives" deviceset="CAP" device="PTH" value="0.1 uF"/>
 <part name="GND11" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
@@ -6899,15 +6910,16 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="GND10" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="ELEC-LEFT" library="con-lstb" deviceset="MA06-1" device=""/>
 <part name="ELEC-RIGHT" library="con-lstb" deviceset="MA06-1" device=""/>
-<part name="MUTE" library="SparkFun-Connectors" deviceset="M02" device="PTH"/>
-<part name="LED" library="SparkFun-Connectors" deviceset="M02" device="PTH"/>
-<part name="TOGGLE" library="SparkFun-Connectors" deviceset="M02" device="PTH"/>
+<part name="MUTE" library="SparkFun-Connectors" deviceset="M02" device="PTH" value=""/>
+<part name="LED" library="SparkFun-Connectors" deviceset="M02" device="PTH" value=""/>
+<part name="TOGGLE" library="SparkFun-Connectors" deviceset="M02" device="PTH" value=""/>
 <part name="C6" library="SparkFun-Passives" deviceset="CAP" device="PTH" value="0.1 uF"/>
 <part name="C7" library="SparkFun-Passives" deviceset="CAP" device="PTH" value="0.1 uF"/>
 <part name="C8" library="SparkFun-Passives" deviceset="CAP" device="PTH" value="0.1 uF"/>
 <part name="GND14" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="GND15" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="U$1" library="Spark" deviceset="PHOTON" device="_WITH_HEADERS"/>
+<part name="SG4" library="buzzer" library_urn="urn:adsk.eagle:library:113" deviceset="F/HMB" device="" value=""/>
 </parts>
 <sheets>
 <sheet>
@@ -6917,7 +6929,7 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <text x="-12.7" y="2.54" size="1.778" layer="91">DHT11</text>
 <text x="116.84" y="25.4" size="1.778" layer="91">Servo</text>
 <text x="50.8" y="0" size="1.778" layer="91">Note: IC1 pin 14 to Vcc (+5 volts)</text>
-<text x="91.44" y="83.82" size="1.778" layer="91">Piezo Buzzer</text>
+<text x="109.22" y="73.66" size="1.778" layer="91">Piezo Buzzer</text>
 <text x="50.8" y="-5.08" size="1.778" layer="91">Note: IC1 pin 7 to GND</text>
 <text x="86.36" y="127" size="1.778" layer="91">Toggle switch</text>
 <text x="116.84" y="60.96" size="1.778" layer="91">MUTE BUTTON</text>
@@ -6946,7 +6958,6 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <instance part="IC1" gate="C" x="55.88" y="27.94"/>
 <instance part="IC1" gate="D" x="55.88" y="10.16"/>
 <instance part="R1" gate="G$1" x="86.36" y="48.26"/>
-<instance part="SP2" gate="G$1" x="91.44" y="76.2" rot="R270"/>
 <instance part="GND5" gate="1" x="40.64" y="-15.24" rot="MR0"/>
 <instance part="U$2" gate="G$1" x="-15.24" y="7.62"/>
 <instance part="GND6" gate="1" x="5.08" y="2.54" rot="MR0"/>
@@ -6954,7 +6965,7 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <instance part="SUPPLY1" gate="1" x="-50.8" y="106.68"/>
 <instance part="J3" gate="G$1" x="111.76" y="25.4" rot="R180"/>
 <instance part="SUPPLY2" gate="1" x="88.9" y="33.02"/>
-<instance part="GND4" gate="1" x="91.44" y="68.58" rot="MR0"/>
+<instance part="GND4" gate="1" x="83.82" y="86.36" rot="MR0"/>
 <instance part="GND9" gate="1" x="22.86" y="76.2" rot="MR0"/>
 <instance part="R2" gate="G$1" x="20.32" y="22.86"/>
 <instance part="R3" gate="G$1" x="50.8" y="101.6"/>
@@ -6982,6 +6993,7 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <instance part="GND14" gate="1" x="-30.48" y="12.7" rot="MR0"/>
 <instance part="GND15" gate="1" x="-22.86" y="12.7" rot="MR0"/>
 <instance part="U$1" gate="G$1" x="-7.62" y="66.04"/>
+<instance part="SG4" gate="G$1" x="101.6" y="71.12" rot="MR90"/>
 </instances>
 <busses>
 </busses>
@@ -7043,10 +7055,6 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <wire x1="0" y1="10.16" x2="5.08" y2="10.16" width="0.1524" layer="91"/>
 <pinref part="GND6" gate="1" pin="GND"/>
 <wire x1="5.08" y1="10.16" x2="5.08" y2="5.08" width="0.1524" layer="91"/>
-</segment>
-<segment>
-<pinref part="SP2" gate="G$1" pin="2"/>
-<pinref part="GND4" gate="1" pin="GND"/>
 </segment>
 <segment>
 <pinref part="C3" gate="G$1" pin="2"/>
@@ -7125,6 +7133,12 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <pinref part="C8" gate="G$1" pin="2"/>
 <pinref part="GND15" gate="1" pin="GND"/>
 <wire x1="-22.86" y1="17.78" x2="-22.86" y2="15.24" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="GND4" gate="1" pin="GND"/>
+<wire x1="83.82" y1="88.9" x2="99.06" y2="88.9" width="0.1524" layer="91"/>
+<pinref part="SG4" gate="G$1" pin="-"/>
+<wire x1="99.06" y1="88.9" x2="99.06" y2="76.2" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$7" class="0">
@@ -7306,11 +7320,9 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 </net>
 <net name="N$6" class="0">
 <segment>
-<wire x1="76.2" y1="68.58" x2="76.2" y2="81.28" width="0.1524" layer="91"/>
-<pinref part="SP2" gate="G$1" pin="1"/>
-<wire x1="76.2" y1="81.28" x2="91.44" y2="81.28" width="0.1524" layer="91"/>
 <pinref part="IC1" gate="A" pin="O"/>
-<wire x1="66.04" y1="68.58" x2="76.2" y2="68.58" width="0.1524" layer="91"/>
+<wire x1="66.04" y1="68.58" x2="99.06" y2="68.58" width="0.1524" layer="91"/>
+<pinref part="SG4" gate="G$1" pin="+"/>
 </segment>
 </net>
 <net name="N$22" class="0">
@@ -7367,12 +7379,20 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 </nets>
 </sheet>
 </sheets>
+<errors>
+<approved hash="113,1,-85.6156,5.27473,EXPANSION,,,,,"/>
+</errors>
 </schematic>
 </drawing>
 <compatibility>
 <note version="6.3" minversion="6.2.2" severity="warning">
 Since Version 6.2.2 text objects can contain more than one line,
 which will not be processed correctly with this version.
+</note>
+<note version="8.2" severity="warning">
+Since Version 8.2, Eagle supports online libraries. The ids
+of those online libraries will not be understood (or retained)
+with this version.
 </note>
 </compatibility>
 </eagle>
