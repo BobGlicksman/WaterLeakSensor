@@ -38,7 +38,7 @@
         sending an alarm.
 
 
-    author: Bob Glicksman, Jim Schrempp; 05/01/2017
+    author: Bob Glicksman, Jim Schrempp; 06/03/2017
 
     (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
 
@@ -148,12 +148,16 @@ void blynkRaiseAlarm()
 void blynkWaterDetected(boolean detected)
 {
 #ifdef BLYNK_NOTIFY
-    if (detected)
-    {
-        blynkLED1.on();
-    } else
-    {
-        blynkLED1.off();
+    static boolean lastState = false;
+    
+    if(detected != lastState) { // publish only on a change of detected state
+    
+        if (detected) {
+            blynkLED1.on();
+        } else  {
+            blynkLED1.off();
+        }
+        lastState = detected;
     }
 #endif
 }
