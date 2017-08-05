@@ -9,4 +9,6 @@ The Water Leak Sensor is also an excellent platform for IoT sensor deployment. T
 
 Begin with the file /Documents/WLD Read Me First.pdf
 
-![alt text](Photos/Finished%20pointerB.JPG?raw=true "Title")
+![front view completed project](Photos/Finished%20pointerB.JPG?raw=true "Completed Project")
+
+![close up of smart phone app](Photos/wldblynksample.PNG?raw=true "SmartPhone App")
