@@ -45,3 +45,13 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# backup FreeCAD files
+*.FCStd1
+*.FCStd2
+*.FCStd3
+*.FCStd4
+
+# CorelDraw backups
+backup_*.*
+
