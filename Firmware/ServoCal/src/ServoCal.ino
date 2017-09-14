@@ -1,18 +1,23 @@
 /* SERVOCAL: program to calibrate the servo.
     The servo is connected to a 3.3 volt to 5 volt converter.  The converter
-    input is connected to Photon pin A5.  A 5.6K ohm pulldown resistor is used
+    input is connected to Photon pin A5.  A 4.7K ohm pulldown resistor is used
     to ensure that the servo is quiet while the Photon is being flashed/reset.
 
-    The SIS debug client is used to specify positions for the servo.  In order
-    to calibrate the servo, the servo with a pointer is mounted on to the meter
+    The Particle Console is used to specify positions for the servo.  Complete 
+    instructions can be found in the document:
+    
+    https://github.com/TeamPracticalProjects/WaterLeakSensor/blob/master/Documentation/Servo_Meter_Calibration.pdf
+    
+    In order to calibrate the servo, the servo with a pointer is mounted on to the meter
     scale.  The user specifies positions for the servo and observes where the
     servo pointer is on the meter scale.  The position values for the scale minimum
     and for the scale maximum are determined by trial and error and the final
     values are noted for use in the WaterLeakDetector program.
 
-    date: 3/07/17, by Bob Glicksman; updated 3/20/17 by Jim Schrempp
+    date: 3/07/17, by Bob Glicksman; updated 3/20/17 by Jim Schrempp; comments
+    updated 9/14/17 by Bob Glicksman.
 
-    (c) 2017 by Bob Glicksman, Jim Schrempp, and team Practical Projects
+    (c) 2017 by Bob Glicksman, Jim Schrempp, and Team Practical Projects
 */
 
 Servo myservo;  // create servo object to control a servo
