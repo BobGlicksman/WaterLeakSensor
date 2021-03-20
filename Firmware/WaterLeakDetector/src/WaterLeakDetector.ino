@@ -40,9 +40,9 @@
 
     author: Bob Glicksman, Jim Schrempp; 06/03/2017
 
-    (c) 2017, Bob Glicksman and Jim Schrempp, Team Practical Projects
+    (c) 2017, 2021, Bob Glicksman and Jim Schrempp, Team Practical Projects
 
-20210319:  Commented out Particle.publish() of temp and humidity b/c of Particles new pricing policy
+20210320:  Commented out Particle.publish() of temp and humidity b/c of Particles new pricing policy
 20170530a: Added Blynk application notification of water detection with Blynk Terminal and LED.
 ***********************************************************************************************************/
 //#define IFTTT_NOTIFY    // comment out if IFTTT alarm notification is not desired
@@ -99,7 +99,9 @@ Servo myservo;  // create servo object to control a servo
 #ifdef BLYNK_NOTIFY
 //blynk
 #include "blynk.h"
-char auth[] = "c95d8376139b4278816e9869d6d1fcc9";
+
+char auth[] = "REPLACE THIS WITH YOUR BLYNK ACCESS TOKEN";
+
 #define BLYNK_VPIN_HUMIDITY V5
 #define BLYNK_VPIN_TEMPERATURE V7
 #define BLYNK_VPIN_ALARM V6
@@ -192,7 +194,8 @@ void setup() {
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(TOGGLE_PIN, INPUT_PULLUP);  // toggle switch uses an internal pullup
     myservo.attach(SERVO_PIN);  // attaches to the servo object
-
+    DHT.begin();
+    
 #ifdef BLYNK_NOTIFY
     Blynk.begin(auth);
     blynkReportRestart();
