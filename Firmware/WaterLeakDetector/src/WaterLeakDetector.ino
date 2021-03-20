@@ -99,7 +99,9 @@ Servo myservo;  // create servo object to control a servo
 #ifdef BLYNK_NOTIFY
 //blynk
 #include "blynk.h"
+
 char auth[] = "REPLACE THIS WITH YOUR BLYNK ACCESS TOKEN";
+
 #define BLYNK_VPIN_HUMIDITY V5
 #define BLYNK_VPIN_TEMPERATURE V7
 #define BLYNK_VPIN_ALARM V6
