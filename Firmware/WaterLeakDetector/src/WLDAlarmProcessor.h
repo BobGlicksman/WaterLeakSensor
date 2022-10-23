@@ -6,7 +6,7 @@
  * By: Bob Glicksman, Jim Schrempp, Team Practical Projects
  * (c) 2022, Bob Glicksman, Jim Schrempp, Team Practical Projects
  * 
- * version 1.0: 10/22/22.  Initial release
+ * version 1.0: 10/23/22.  Initial release
  * 
  *******************************************************************************/
 #ifndef wldap
@@ -21,10 +21,15 @@ class WLDAlarmProcessor  {
         const unsigned int ONE_DAY = ONE_MINUTE * 60 * 24;  // 60 minutes per hour, 24 hours per day
 
         // Variables
-        float _temperature;  // holds the reported temperature that caused the alarm
-        unsigned long _lowTempAlarm_Holdoff;   // holdoff time for next low temp alarm
-        unsigned long _highTempAlarm_Holdoff;   // holdoff time for next high temp alarm
-        unsigned long _leakAlarmHoldoff;    // holdoff time for next leak alarm
+        bool _lowTempAlarmArm;      // indicate alarm arming
+        bool _highTempAlarmArm;     // indicate alarm arming
+        bool _leakAlarmArm;         // indicate alarm arming
+
+        unsigned long _lowTempLastAlarm;    // time of the last alarm
+        unsigned long _highTempLastAlarm;   // time of the last alarm
+        unsigned long _leakLastAlarm;       // time of the last alarm
+
+        String _alarmMsg;   // the message to publish upon alarm
         
         // Private methods (internal use only)
     
@@ -41,14 +46,14 @@ class WLDAlarmProcessor  {
         void sendWaterLeakAlarm();
         void sendTestAlarm();      // for field testing purposes
 
-        void clearLowTempAlarmHoldoff();    // clear the one day holdoff between new alarms and for testing
-        void clearHighTempAlarmHoldoff();   // clear the one day holdoff between new alarms and for testing
-        void clearLeakAlarmHoldoff();       // clear the one day holdoff between new alarms and for testing
+        void armLowTempAlarm();     // forced arming of the alarm
+        void armHighTempAlarm();    // forced arming of the alarm
+        void armLeakAlarm();        // forced arming of the alarm
 
         // Methods for debugging purposes
-        unsigned long get__lowTempAlarm_Holdoff();
-        unsigned long get__highTempAlarm_Holdoff();
-        unsigned long get__leakAlarmHoldoff();
+        unsigned long get_lowTempLastAlarm();
+        unsigned long get_highTempLastAlarm();
+        unsigned long get_leakLastAlarm();
 };
 
 #endif
