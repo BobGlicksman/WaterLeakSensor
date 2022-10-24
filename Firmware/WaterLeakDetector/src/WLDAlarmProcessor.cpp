@@ -34,14 +34,16 @@ void WLDAlarmProcessor::begin() {
 
 // method to create and publish a low temperature alarm event to the Particle Cloud
 void WLDAlarmProcessor::sendLowTemperatureAlarm(float theAlarmTemperature) {
+    String alarmMsg = "Low temperature detected. Temperature = ";
+    unsigned long holdoffTime;
+
+    holdoffTime =  WLDAlarmProcessor::diff(millis(), _lowTempLastAlarm); 
+
     // publish an alarm if it is armed, or else if it is more than ONE_DAY 
     //  since the last time the alarm was published
-
-    if( (_lowTempAlarmArm == true) || ( (diff(millis(), _lowTempLastAlarm)  >= ONE_DAY) ) {
-
-        String _alarmMsg = "Low temperature detected. Temperature = ";
-        _alarmMsg += String(theAlarmTemperature);
-        Particle.publish("WLDAlarmLowTemp", _alarmMsg);
+    if( (_lowTempAlarmArm == true) || ( holdoffTime  >= ONE_DAY) ) {
+        alarmMsg += String(theAlarmTemperature);
+        Particle.publish("WLDAlarmLowTemp", alarmMsg);
         _lowTempAlarmArm = false;   // disarm the alarm
         _lowTempLastAlarm = millis();  // record the time of the alarm
     } 
@@ -49,14 +51,17 @@ void WLDAlarmProcessor::sendLowTemperatureAlarm(float theAlarmTemperature) {
 }   // end of sendLowTemperateAlarm()
 
 // method to create and publish a high temperature alarm event to the Particle Cloud
-void WLDAlarmProcessor::sendHighTemperatureAlarm(float theAlarmTemperature){
-    // publish an alarm if it is armed, or else if it is more than ONE_DAY 
-    //  since the last time the alarm was published
+void WLDAlarmProcessor::sendHighTemperatureAlarm(float theAlarmTemperature) {
+    String alarmMsg = "High temperature detected. Temperature = ";
+    unsigned long holdoffTime;
     
-    if( (_highTempAlarmArm == true) || ( (diff(millis(), _highTempLastAlarm) >= ONE_DAY) ) {  
-        String _alarmMsg = "High temperature detected. Temperature = ";
-        _alarmMsg += String(theAlarmTemperature);
-        Particle.publish("WLDAlarmHighTemp", _alarmMsg);
+    holdoffTime = WLDAlarmProcessor::diff( millis(), _highTempLastAlarm );
+
+    // publish an alarm if it is armed, or else if it is more than ONE_DAY 
+    //  since the last time the alarm was published   
+    if( (_highTempAlarmArm == true) || ( holdoffTime >= ONE_DAY) ) {  
+        alarmMsg += String(theAlarmTemperature);
+        Particle.publish("WLDAlarmHighTemp", alarmMsg);
         _highTempAlarmArm = false;   // disarm the alarm
         _highTempLastAlarm = millis();  // record the time of the alarm
     } 
@@ -66,9 +71,14 @@ void WLDAlarmProcessor::sendHighTemperatureAlarm(float theAlarmTemperature){
 
 // method to create and publish a water leak alarm event to the Particle Cloud
 void WLDAlarmProcessor::sendWaterLeakAlarm() {
+    String alarmMsg = "Water Leak Alarm Detected.";
+    unsigned long holdoffTime;
+
+    holdoffTime = WLDAlarmProcessor::diff( millis(), _leakLastAlarm );
+
     // publish an alarm if it is armed, or else if it is more than ONE_DAY 
     //  since the last time the alarm was published
-    if( (_leakAlarmArm == true) || ( (diff(millis(), _highTempLastAlarm) >= ONE_DAY) ) {  
+    if( (_leakAlarmArm == true) || ( holdoffTime >= ONE_DAY) ) {  
         String _alarmMsg = "Water leak Detected";
         Particle.publish("WLDAlarmWaterLeak", _alarmMsg);
         _leakAlarmArm = false;   // disarm the alarm
@@ -81,8 +91,8 @@ void WLDAlarmProcessor::sendWaterLeakAlarm() {
 // method to create and publish a test alarm event to the Particle Cloud for field testing purposes
 void WLDAlarmProcessor::sendTestAlarm() {
 
-    String _alarmMsg = "This is a test of the WLD alarm system";
-    Particle.publish("WLDAlarmTest", _alarmMsg);
+    String alarmMsg = "This is a test of the WLD alarm system";
+    Particle.publish("WLDAlarmTest", alarmMsg);
 
     return;
 }   // end of sendTestAlarm()
