@@ -28,10 +28,9 @@ class WLDAlarmProcessor  {
         unsigned long _lowTempLastAlarm;    // time of the last alarm
         unsigned long _highTempLastAlarm;   // time of the last alarm
         unsigned long _leakLastAlarm;       // time of the last alarm
-
-        String _alarmMsg;   // the message to publish upon alarm
         
         // Private methods (internal use only)
+        unsigned long diff(unsigned long current, unsigned long last);
     
     public:
         // Constructor
