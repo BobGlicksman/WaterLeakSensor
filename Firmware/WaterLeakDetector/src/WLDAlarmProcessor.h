@@ -61,8 +61,8 @@ class WLDAlarmProcessor  {
     private:
         // Constants
         const unsigned int ONE_MINUTE = 60000; // one minute = 60000 milliseconds
-        // const unsigned int ONE_DAY = ONE_MINUTE * 60 * 24;  // 60 minutes per hour, 24 hours per day
-        const unsigned int ONE_DAY = ONE_MINUTE;    // FOR TESTING ONLY
+        const unsigned int ONE_DAY = ONE_MINUTE * 60 * 24;  // 60 minutes per hour, 24 hours per day
+        //const unsigned int ONE_DAY = ONE_MINUTE;    // FOR TESTING ONLY
         
         // Variables
         bool _lowTempAlarmArm;      // indicate alarm arming
