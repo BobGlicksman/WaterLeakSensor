@@ -185,6 +185,11 @@ int setAlarmLimits(String alarmLimits) {
 
 }   // end of setAlarmLimits()
 
+// Cloud function to send out a test alarm
+int testAlarm(String nothing) {
+    alarmer.sendTestAlarm(); 
+}   // end of testAlarm
+
 // setup()
 void setup() {
     pinMode(LED_PIN, OUTPUT);
@@ -206,6 +211,7 @@ void setup() {
     Particle.variable("High Temp Alarm Limit", highTempAlarmLimit);
 
     Particle.function("Set Temp Alarm Limits", setAlarmLimits);
+    Particle.function("Send a test alarm", testAlarm);
 
     // set the information global
     info = "Firmware Verison 2.0. Last reset at: ";
