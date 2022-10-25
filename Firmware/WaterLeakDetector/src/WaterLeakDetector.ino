@@ -131,9 +131,9 @@ String highTempAlarmLimit = "";   // this string holds the high temp alarm limit
     //  via the cloud variable "currentAlarmLimits" by the app.  The alarm limites are set by the app via 
     //  Particle.function() calls.  The latest values are stored in non-volitile EEPROM.
 struct {
-    uint8_t version = 0;
-    int16_t tempAlarmLowLimit = 40;
-    int16_t tempAlarmHighLimit = 105;
+    uint8_t version;
+    int16_t tempAlarmLowLimit;
+    int16_t tempAlarmHighLimit;
 } AlarmLimits;
 
 // Utility functions
@@ -149,9 +149,15 @@ String dateTimeString(){
 //  This function reads the struct out of EEPROM and sets the global variable strings accordingly
 void readLimitDataFromEEPROM() {
 
-/************ XXXX insert code here for reading limit data from EEPROM and loading the struct **********/
-    
+    // initialize the struct from the EEPROM
+    EEPROM.get(0, AlarmLimits);
 
+    // test that data from EEPROM is valid.  If not, set some defaults.
+    if(AlarmLimits.version != 0) {
+        AlarmLimits.tempAlarmLowLimit = 40;
+        AlarmLimits.tempAlarmHighLimit = 105;
+    }
+    
     //  replace original data with the integer limits, as these are the real alarm limits
     lowTempAlarmLimit = String(AlarmLimits.tempAlarmLowLimit);
     highTempAlarmLimit = String(AlarmLimits.tempAlarmHighLimit); 
@@ -172,10 +178,12 @@ int setAlarmLimits(String alarmLimits) {
     }
 
     // load up the AlarmLimits struct
-    AlarmLimits.tempAlarmLowLimit = (uint16_t)(lowTempAlarmLimit.toInt());
-    AlarmLimits.tempAlarmHighLimit = (uint16_t)(highTempAlarmLimit.toInt());    
+    AlarmLimits.version = (uint8_t)0;
+    AlarmLimits.tempAlarmLowLimit = (int16_t)(lowTempAlarmLimit.toInt());
+    AlarmLimits.tempAlarmHighLimit = (int16_t)(highTempAlarmLimit.toInt());    
 
-/************ XXXX insert code here for reading struct data out of EEPROM and loading the struct **********/
+    // wite the struct to EEPROM
+    EEPROM.put(0, AlarmLimits);
 
     //  replace original data with the integer limits, as these are the real alarm limits
     lowTempAlarmLimit = String(AlarmLimits.tempAlarmLowLimit);
