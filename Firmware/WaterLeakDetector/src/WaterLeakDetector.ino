@@ -38,18 +38,36 @@
         sending an alarm.
 
 
-    author: Bob Glicksman, Jim Schrempp; 06/03/2017
+    author: Bob Glicksman, Jim Schrempp; 10/25/2022
 
-    (c) 2017, 2021, Bob Glicksman and Jim Schrempp, Team Practical Projects
+    (c) 2017, 2021, 2022 Bob Glicksman and Jim Schrempp, Team Practical Projects
+
+20221025:  Version 2.0:  Removed IFTTT and Blynk.  This version uses a custom built app (AI2) to read out
+    the status of the WLD - temperature, humidity and alarms.  This version adds high and low temperature
+    alarms to the previous water leak alarm.  This version uses an instance of the included WLDAlarmProcessor
+    class to manage the three alarms.  Alarms are implemented as SMS text messages to the user's mobile
+    phone, via Particle.publish() from the WLDAlarmProcessor instance.  Each such publication triggers
+    a webhook in the Particle cloud to POST the alarm event to a Google Apps Script.  The script, in turn,
+    sends an email to the user's mobile carrier SMS gateway, resulting in an SMS text to the user's mobile
+    phone.  More information about this process can be found at:
+    https://github.com/TeamPracticalProjects/Connectivity_Tools_with_Particle_Devices
+    
+    This version of the WLD firmware uses the same logic as earlier versions
+    to detect and clear leak conditions and to average the temperature and humidity reading for the purposes
+    of display, reporting, and detecting/clearing alarms.  The instance of the WLDAlarmProcessor class manages
+    alarm holdoffs so that this firmware does not have to manage alarm states.  Rather, when this firmware
+    detects an alarm condition, it calls the appropriate object method and when it determines that an alarm
+    condition does not exist, it calls a re-arm method for that alarm.  The object manages alarm holdoffs so that
+    any persistant alarm only alarms the user.
+
+    Manual display of temperature/humidity (via the servo meter) and alarm/mute functionality are unchanged from
+    earlier version of the WLD.
 
 20210320:  Commented out Particle.publish() of temp and humidity b/c of Particles new pricing policy
 20170530a: Added Blynk application notification of water detection with Blynk Terminal and LED.
 ***********************************************************************************************************/
-//#define IFTTT_NOTIFY    // comment out if IFTTT alarm notification is not desired
-#define BLYNK_NOTIFY    // comment out if you do not want Blynk to be active
-
 #include <PietteTech_DHT.h> // non-blocking library for DHT11
-#include <blynk.h>  // Blynk library
+#include <WLDAlarmProcessor.h>  // the alarm processor class
 
 // Constants and definitions
 #define DHTTYPE  DHT11              // Sensor type DHT11/21/22/AM2301/AM2302
@@ -64,7 +82,6 @@ const int TOGGLE_PIN = D1;               // pin for temperature/humidity toggle 
 const int SERVO_PIN = A5;                // servo pin
 #define DHT_SAMPLE_INTERVAL   4000  // Sample every 4 seconds
 #define PARTICLE_PUBLISH_INTERVAL 60000 // Publish values every 60 seconds
-#define SECOND_NOTIFY_DELAY 30000  // the second alarm notification comes 30 seconds after the first notification
 const float WATER_LEVEL_THRESHOLD = 0.5;    // 0.5 volts or higher on either sensor triggers alarm
 
 // servo calibration values
@@ -95,96 +112,78 @@ float mg_smoothedTemp = 0.0, mg_smoothedHumidity = 0.0; // smoothed for the disp
 // Lib instantiate
 PietteTech_DHT DHT(DHTPIN, DHTTYPE);    // create DHT object to read temp and humidity
 Servo myservo;  // create servo object to control a servo
+WLDAlarmProcessor alarmer;  // create alarmer object to manage alarms
 
-#ifdef BLYNK_NOTIFY
-//blynk
-#include "blynk.h"
+// Globals
+boolean ledState = false;   // D7 LED is used for indicating water level measurements
 
-char auth[] = "REPLACE THIS WITH YOUR BLYNK ACCESS TOKEN";
+    // These globals are for Particle.variable() data for cloud access by the app.
+String info = "";   // this string will hold the firmware version number and the last reset time.
+String temperature = "";   // this string will hold the currently averaged temperature
+String humidity = "";   // this string will hold the currently averaged humidity
+String currentAlarms = "0,0,0"; // this string holds the high temp alarm, low temp alarm, leak alarm
+                                //  in a comma separated format. 0 is no alarm, any other number is an
+                                //  alarm.
+String lowTempAlarmLimit = "";    // this string holds the low temp alarm limit
+String highTempAlarmLimit = "";   // this string holds the high temp alarm limit
 
-#define BLYNK_VPIN_HUMIDITY V5
-#define BLYNK_VPIN_TEMPERATURE V7
-#define BLYNK_VPIN_ALARM V6
-#define BLYNK_VPIN_TERMINAL V4
-
-WidgetLED blynkLED1(BLYNK_VPIN_ALARM);
-
-
-// These functions are called by Blynk application widgets to get the value of
-// a "Virtual Pin"
-BLYNK_READ(BLYNK_VPIN_HUMIDITY)
-{
-    Blynk.virtualWrite(BLYNK_VPIN_HUMIDITY, mg_smoothedHumidity);
-}
-
-BLYNK_READ(BLYNK_VPIN_TEMPERATURE)
-{
-    Blynk.virtualWrite(BLYNK_VPIN_TEMPERATURE, mg_smoothedTemp);
-}
-
-
-#endif
+    // This global structure holds the temperature alarm limits.  The limits are cloud accessible for reading 
+    //  via the cloud variable "currentAlarmLimits" by the app.  The alarm limites are set by the app via 
+    //  Particle.function() calls.  The latest values are stored in non-volitile EEPROM.
+struct {
+    uint8_t version = 0;
+    int16_t tempAlarmLowLimit = 40;
+    int16_t tempAlarmHighLimit = 105;
+} AlarmLimits;
 
 // Utility functions
 
+// create a string of the current date-time in UTC
 String dateTimeString(){
     time_t timeNow = Time.now();
     String dateTime = Time.format(timeNow,TIME_FORMAT_DEFAULT) + " UTC";
     return dateTime;
-}
+}   // end of dateTimeString()
 
-// We leave the method calls so that we don't have to ifdef every place it might be
-// called in the code.
-void blynkRaiseAlarm()
-{
-#ifdef BLYNK_NOTIFY
-    static int notifyCount = 0;
-    notifyCount++;
-    String blynkWarning = "WARNING: Water leak detected (" + String(notifyCount) + ") ";
-    Blynk.notify(blynkWarning);
+// The high and low temperature limits are stored in a struct in non-volitile simulated EEPROM.  
+//  This function reads the struct out of EEPROM and sets the global variable strings accordingly
+void readLimitDataFromEEPROM() {
 
-    blynkWriteTerminal(blynkWarning);
-    blynkWriteTerminal(dateTimeString() + "\r\n");
-#endif
-}
-
-void blynkWaterDetected(boolean detected)
-{
-#ifdef BLYNK_NOTIFY
-    static boolean lastState = false;
+/************ XXXX insert code here for reading limit data from EEPROM and loading the struct **********/
     
-    if(detected != lastState) { // publish only on a change of detected state
-    
-        if (detected) {
-            blynkLED1.on();
-        } else  {
-            blynkLED1.off();
+
+    //  replace original data with the integer limits, as these are the real alarm limits
+    lowTempAlarmLimit = String(AlarmLimits.tempAlarmLowLimit);
+    highTempAlarmLimit = String(AlarmLimits.tempAlarmHighLimit); 
+
+}   // end of readLimitDataFromEEPROM() 
+
+// Cloud function to set the new temperature alarm limits and store as a struct into EEPROM
+//  argument is a string containing "lowTempAlarmLimit" comma "highTempAlarmLimit"
+int setAlarmLimits(String alarmLimits) {
+
+    // Parse the comma delimited string from the app
+    for(unsigned int i = 0; i < alarmLimits.length(); i++) {
+        if (alarmLimits.charAt(i) == ',') {
+            lowTempAlarmLimit = alarmLimits.substring(0, i-1);
+            highTempAlarmLimit = alarmLimits.substring(i+1);
+            break;  // we are done walking through the string
         }
-        lastState = detected;
     }
-#endif
-}
 
-void blynkReportRestart()
-{
-#ifdef BLYNK_NOTIFY
-    blynkWriteTerminal("---------\r\n");
-    blynkWriteTerminal("WLD restarted: ");
-    blynkWriteTerminal(dateTimeString() + "\r\n");
-#endif
-}
+    // load up the AlarmLimits struct
+    AlarmLimits.tempAlarmLowLimit = (uint16_t)(lowTempAlarmLimit.toInt());
+    AlarmLimits.tempAlarmHighLimit = (uint16_t)(highTempAlarmLimit.toInt());    
 
+/************ XXXX insert code here for reading struct data out of EEPROM and loading the struct **********/
 
-void blynkWriteTerminal(String msg)
-{
-#ifdef BLYNK_NOTIFY
-    Blynk.virtualWrite(BLYNK_VPIN_TERMINAL,msg);
-#endif
-}
+    //  replace original data with the integer limits, as these are the real alarm limits
+    lowTempAlarmLimit = String(AlarmLimits.tempAlarmLowLimit);
+    highTempAlarmLimit = String(AlarmLimits.tempAlarmHighLimit); 
 
+    return 0;
 
-// Globals
-boolean ledState = false;   // D7 LED is used for indicating water level measurements
+}   // end of setAlarmLimits()
 
 // setup()
 void setup() {
@@ -194,15 +193,31 @@ void setup() {
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(TOGGLE_PIN, INPUT_PULLUP);  // toggle switch uses an internal pullup
     myservo.attach(SERVO_PIN);  // attaches to the servo object
+
     DHT.begin();
-    
-#ifdef BLYNK_NOTIFY
-    Blynk.begin(auth);
-    blynkReportRestart();
-    blynkLED1.off();
-#endif
+    alarmer.begin();
+
+    // declare Cloud variables and functions
+    Particle.variable("Info", info);
+    Particle.variable("Temperature", temperature);
+    Particle.variable("Humidity, humidity");
+    Particle.variable("Alarms", currentAlarms);
+    Particle.variable("Low Temp Alarm Limit", lowTempAlarmLimit);
+    Particle.variable("High Temp Alarm Limit", highTempAlarmLimit);
+
+    Particle.function("Set Temp Alarm Limits", setAlarmLimits);
+
+    // set the information global
+    info = "Firmware Verison 2.0. Last reset at: ";
+    info += dateTimeString();
+
+    // read the temp alarm limits from EEPROM into the struct and set the global variables
+    void readLimitDataFromEEPROM(); 
 
 }  // end of setup()
+
+
+/******************** LEFT OFF HERE ********************/
 
 // loop()
 void loop() {
@@ -221,9 +236,6 @@ void loop() {
     // Non-blocking read of DHT11 data and publish and display it
     float currentTemp, currentHumidity;
 
-#ifdef BLYNK_NOTIFY
-    Blynk.run();
-#endif
 
     static boolean onceUponRestart = true;
     if (onceUponRestart){
