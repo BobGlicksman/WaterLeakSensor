@@ -205,12 +205,9 @@ void writeAlarmStatusString() {
 void readLimitDataFromEEPROM() {
 
     // initialize the struct from the EEPROM
-    int addr = 10;
-    EEPROM.get(addr, AlarmLimits.version);
-    addr = 20;
-    EEPROM.get(addr, AlarmLimits.tempAlarmLowLimit);
-    addr = 30;
-    EEPROM.get(addr, AlarmLimits.tempAlarmHighLimit);
+    EEPROM.get(10, AlarmLimits.version);
+    EEPROM.get(11, AlarmLimits.tempAlarmLowLimit);
+    EEPROM.get(13, AlarmLimits.tempAlarmHighLimit);
 
     // test that data from EEPROM is valid.  If not, set some defaults.
     if(AlarmLimits.version != 0) {
@@ -243,12 +240,9 @@ int setAlarmLimits(String alarmLimits) {
     AlarmLimits.tempAlarmHighLimit = (int16_t)(highTempAlarmLimit.toInt());    
 
     // write the struct to EEPROM
-    int addr = 10;
-    EEPROM.put(addr, AlarmLimits.version);
-    addr = 20;
-    EEPROM.put(addr, AlarmLimits.tempAlarmLowLimit);
-    addr = 30;
-    EEPROM.put(addr, AlarmLimits.tempAlarmHighLimit);
+    EEPROM.put(10, AlarmLimits.version);
+    EEPROM.put(11, AlarmLimits.tempAlarmLowLimit);
+    EEPROM.put(13, AlarmLimits.tempAlarmHighLimit);
 
     /***********************TESTING****************************/
     String testStruct = String(AlarmLimits.version);
@@ -330,7 +324,6 @@ void loop() {
     static boolean indicator = false;  // set to true to flash the indicator
     static boolean alarm = false;   // set to true to sound the alarm
     static unsigned long lastReadTime = 0UL;    // DHT 11 reading time
-    static unsigned long lastPublishTime = 0UL;  // Published particle event time
     static boolean newData = false; // flag to indicate DHT11 has new data
     static boolean toggle = false;  // hold the reading of the toggle switch; false for humidity, true for temperature
     static boolean lastToggle = false;  // hold the previous reading of the toggle switch
