@@ -136,6 +136,13 @@ struct {
     int16_t tempAlarmHighLimit;
 } AlarmLimits;
 
+struct {
+    bool lowTempAlarm;
+    bool highTempAlarm;
+    bool waterLeakAlarm;
+} Alarms;
+
+
 // Utility functions
 
 // create a string of the current date-time in UTC
@@ -144,6 +151,31 @@ String dateTimeString(){
     String dateTime = Time.format(timeNow,TIME_FORMAT_DEFAULT) + " UTC";
     return dateTime;
 }   // end of dateTimeString()
+
+// write the cloud accessible variable string that contains the current alarms
+void writeAlarmStatusString() {
+    currentAlarms = "";
+    if(Alarms.lowTempAlarm == false) {
+        currentAlarms += String(0);
+    } else {
+        currentAlarms += String(1);
+    }
+    currentAlarms += ",";
+
+    if(Alarms.highTempAlarm == false) {
+        currentAlarms += String(0);
+    } else {
+        currentAlarms += String(1);
+    }
+    currentAlarms += ",";  
+
+    if(Alarms.waterLeakAlarm == false) {
+        currentAlarms += String(0);
+    } else {
+        currentAlarms += String(1);
+    }
+
+}   // end of writeAlarmStatusString
 
 // The high and low temperature limits are stored in a struct in non-volitile simulated EEPROM.  
 //  This function reads the struct out of EEPROM and sets the global variable strings accordingly
@@ -182,7 +214,7 @@ int setAlarmLimits(String alarmLimits) {
     AlarmLimits.tempAlarmLowLimit = (int16_t)(lowTempAlarmLimit.toInt());
     AlarmLimits.tempAlarmHighLimit = (int16_t)(highTempAlarmLimit.toInt());    
 
-    // wite the struct to EEPROM
+    // write the struct to EEPROM
     EEPROM.put(0, AlarmLimits);
 
     //  replace original data with the integer limits, as these are the real alarm limits
@@ -196,7 +228,11 @@ int setAlarmLimits(String alarmLimits) {
 // Cloud function to send out a test alarm
 int testAlarm(String nothing) {
     alarmer.sendTestAlarm(); 
+
+    return 0;
+    
 }   // end of testAlarm
+
 
 // setup()
 void setup() {
@@ -213,7 +249,7 @@ void setup() {
     // declare Cloud variables and functions
     Particle.variable("Info", info);
     Particle.variable("Temperature", temperature);
-    Particle.variable("Humidity, humidity");
+    Particle.variable("Humidity", humidity);
     Particle.variable("Alarms", currentAlarms);
     Particle.variable("Low Temp Alarm Limit", lowTempAlarmLimit);
     Particle.variable("High Temp Alarm Limit", highTempAlarmLimit);
@@ -225,37 +261,30 @@ void setup() {
     info = "Firmware Verison 2.0. Last reset at: ";
     info += dateTimeString();
 
+    // clear out alarm structure
+    Alarms.lowTempAlarm = false;
+    Alarms.highTempAlarm = false;
+    Alarms.waterLeakAlarm = false;
+
+
     // read the temp alarm limits from EEPROM into the struct and set the global variables
     void readLimitDataFromEEPROM(); 
 
 }  // end of setup()
 
 
-/******************** LEFT OFF HERE ********************/
-
 // loop()
 void loop() {
     static boolean mute = false;  // set to true to mute the audible alarm
     static boolean indicator = false;  // set to true to flash the indicator
     static boolean alarm = false;   // set to true to sound the alarm
-    static boolean previousAlarmState = false;  // used to detect a new alarm
     static unsigned long lastReadTime = 0UL;    // DHT 11 reading time
     static unsigned long lastPublishTime = 0UL;  // Published particle event time
     static boolean newData = false; // flag to indicate DHT11 has new data
     static boolean toggle = false;  // hold the reading of the toggle switch; false for humidity, true for temperature
     static boolean lastToggle = false;  // hold the previous reading of the toggle switch
-    static boolean firstNotification = false;  // indicator to use for a second alarm notification
-   	static unsigned long firstNotifyTime;	// record time of first notification to time the second one
 
-    // Non-blocking read of DHT11 data and publish and display it
     float currentTemp, currentHumidity;
-
-
-    static boolean onceUponRestart = true;
-    if (onceUponRestart){
-        onceUponRestart = false;
-
-    }
 
     //  read the toggle switch position and set the boolean for type of display accordingly
     if(digitalRead(TOGGLE_PIN) == LOW)  {   // indicates a temperature reading
@@ -274,35 +303,70 @@ void loop() {
         }
     }
 
+    // Non-blocking read of DHT11 data and publish and display it
     int sensorStatus = readDHT(false);  // refresh the sensor status but don't start a new reading
 
 	if(sensorStatus != ACQUIRING) {
-      if(newData == true) { // we have new data
-        currentTemp = DHT.getFahrenheit();
-        currentHumidity = DHT.getHumidity();
+        if(newData == true) { // we have new data
+            currentTemp = DHT.getFahrenheit();
+            currentHumidity = DHT.getHumidity();
 
-        // Smooth the readings for display
-        if (mg_smoothedTemp < 10) {   // first time init
-            mg_smoothedTemp = currentTemp;
+            // Smooth the readings for display
+            if (mg_smoothedTemp < 10) {   // first time init
+                mg_smoothedTemp = currentTemp;
+            }
+            if (mg_smoothedHumidity < 10){  // first time init
+                mg_smoothedHumidity = currentHumidity;
+            }
+            
+            // 10 point moving average
+            mg_smoothedTemp =  (0.9 * mg_smoothedTemp) +  (0.1 * currentTemp);
+            mg_smoothedHumidity =  (0.9 * mg_smoothedHumidity) +  (0.1 * currentHumidity);
+
+	        // set temperature or humidiy on the servo meter
+	        if(toggle == true)  {   // temperature reading called for
+	            meterTemp(mg_smoothedTemp);
+	        }  else  {  // humidity reading called for
+	         meterHumidity(mg_smoothedHumidity);
+	        }
+  
+            // set the cloud temperature and humidity globals
+            temperature = String(mg_smoothedTemp);
+            humidity = String(mg_smoothedHumidity);
+
+            // test for low and high temperature alarms and set the flags
+            if(mg_smoothedTemp < lowTempAlarmLimit.toFloat()) { // we have a low temperature alarm
+                Alarms.lowTempAlarm = true; // set the low temperature alarm flag
+            } else {    // no low temperature alarm now
+                Alarms.lowTempAlarm = false; // set the low temperature alarm flag
+            }
+        
+            if(mg_smoothedTemp > highTempAlarmLimit.toFloat()) { // we have a high temperature alarm
+                Alarms.highTempAlarm = true; // set the high temperature alarm flag
+                alarmer.sendHighTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
+            } else {    // no high temperature alarm now
+                Alarms.highTempAlarm = false; // set the low temperature alarm flag
+            }
+
+            // process the alarm flags to send or reset the alarms, as appropriate
+            if(Alarms.lowTempAlarm == true) {   // low temp alarm needs processing
+                alarmer.sendLowTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
+                alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
+            } else if(Alarms.highTempAlarm == true) {     // high temp alarm needs processing
+                alarmer.sendHighTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
+                alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future            
+            } else {    // not temp alarms, therefore both alarms need rearming
+                alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
+                alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future 
+            }
+
+            // write out the current status of all alarms
+            writeAlarmStatusString();
+
+	        newData = false; // don't publish/process results again until a new reading
         }
-        if (mg_smoothedHumidity < 10){  // first time init
-            mg_smoothedHumidity = currentHumidity;
-        }
-        // 10 point moving average
-        mg_smoothedTemp =  (0.9 * mg_smoothedTemp) +  (0.1 * currentTemp);
-        mg_smoothedHumidity =  (0.9 * mg_smoothedHumidity) +  (0.1 * currentHumidity);
 
-	    // set temperature or humidiy on the servo meter
-	    if(toggle == true)  {   // temperature reading called for
-	        meterTemp(mg_smoothedTemp);
-	    }  else  {  // humidity reading called for
-	        meterHumidity(mg_smoothedHumidity);
-	    }
-
-	    newData = false; // don't publish results again until a new reading
-      }
-
-      if((diff(millis(), lastReadTime)) >= DHT_SAMPLE_INTERVAL) { // we are ready for a new reading
+        if((diff(millis(), lastReadTime)) >= DHT_SAMPLE_INTERVAL) { // we are ready for a new reading
           readDHT(true);  // start a new reading
           newData = true; // set flag to indicate that a new reading will result
           lastReadTime = millis();
@@ -315,18 +379,8 @@ void loop() {
             } else {
                 digitalWrite(LED_PIN, LOW);
             }
-
         }
     }
-
-    if((diff(millis(), lastPublishTime)) >= PARTICLE_PUBLISH_INTERVAL)  // we should publish our values
-    {
-        lastPublishTime = millis();
-        // publish Smoothed temperature and humidity readings to the cloud
-//        Particle.publish("Humidity Smoothed (%)", String(mg_smoothedHumidity));
-//        Particle.publish("Temperature Smoothed (oF)", String(mg_smoothedTemp));
-    }
-
 
     // measure and test water level at pre-determined interval
     if(nbWaterMeasureInterval(20) == false) {  // 20 ms between sensor readings
@@ -343,7 +397,11 @@ void loop() {
         // integrate and threshold measurement for alarm
         if(alarmIntegrator(waterSensorVoltageA, waterSensorVoltageB) == true) {
             indicator = true;
-            blynkWaterDetected(true);
+            // process a water leak detection
+            Alarms.waterLeakAlarm = true;   // set the alarm flag
+            alarmer.sendWaterLeakAlarm();   // send the alarm for processing
+            writeAlarmStatusString();   // update the alarm status global string
+
             if(mute == false) {
                 alarm = true;
             } else {
@@ -351,37 +409,15 @@ void loop() {
             }
         } else {
             indicator = false;
-            blynkWaterDetected(false);
+            // no water leak alarm so process and rearm
+            Alarms.waterLeakAlarm = false;   // set the alarm flag
+            alarmer.armLeakAlarm();   // send the alarm for processing
+            writeAlarmStatusString();   // update the alarm status global string
+
             alarm = false;
             mute = false;   // reset alarm muting
         }
-
-        #ifdef IFTTT_NOTIFY
-            //  For IFTTT Notification: test if new alarm and publish it
-           if((indicator == true) && (indicator != previousAlarmState)) {
-             Particle.publish("Water leak alarm", Time.timeStr(Time.now()) + " Z");
-           }
-         #endif
-
-    	// If we have a new alarm, then send a Blynk notification
- 		if((indicator == true) && (indicator != previousAlarmState)) {
-        	blynkRaiseAlarm();
-
-        	// set conditions for the second alarm notification
-        	firstNotification = true;
-        	firstNotifyTime = millis();
-    	}
-
-    	previousAlarmState = indicator; // update old alarm state to present state
     }
-
-
-    // process the second alarm notification after the first alarm notification
-    if( (firstNotification == true) && (diff(millis(), firstNotifyTime) >= SECOND_NOTIFY_DELAY) )  {
-        blynkRaiseAlarm();
-        firstNotification = false;
-    }
-
 
     // process the mute pushbutton
     if(readPushButton() == true) {
@@ -392,7 +428,7 @@ void loop() {
     // refresh non-blocking alarm & indicator status
     nbFlashIndicator(indicator);
     nbSoundAlarm(alarm);
-
+    
 } // end of loop()
 
 /* alarmIntegrator():  function that thresholds sensor voltage readings and integrates the values.
@@ -402,8 +438,7 @@ void loop() {
         the alarm value as a boolean.  The alarm value is set after 5 thresholds are accumulated
             for either sensor and stays set until 5 under-thresholds are accumulated for both sensors
 */
-
-boolean alarmIntegrator(float sensorAReading, float sensorBReading) {
+bool alarmIntegrator(float sensorAReading, float sensorBReading) {
     const byte ALARM_LIMIT = 5;     // 5 thresholds are required to trigger an alarm, then 5 under thresholds
                                     //  are required to reset the alarm condition.
 
