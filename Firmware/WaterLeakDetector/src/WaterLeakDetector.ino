@@ -136,6 +136,7 @@ struct {
     int16_t tempAlarmHighLimit;
 } AlarmLimits;
 
+
 struct {
     bool lowTempAlarm;
     bool highTempAlarm;
@@ -156,23 +157,23 @@ String dateTimeString(){
 void writeAlarmStatusString() {
     currentAlarms = "";
     if(Alarms.lowTempAlarm == false) {
-        currentAlarms += String(0);
+        currentAlarms += "0";
     } else {
-        currentAlarms += String(1);
+        currentAlarms += "1";
     }
     currentAlarms += ",";
 
     if(Alarms.highTempAlarm == false) {
-        currentAlarms += String(0);
+        currentAlarms += "0";
     } else {
-        currentAlarms += String(1);
+        currentAlarms += "1";
     }
     currentAlarms += ",";  
 
     if(Alarms.waterLeakAlarm == false) {
-        currentAlarms += String(0);
+        currentAlarms += "0";
     } else {
-        currentAlarms += String(1);
+        currentAlarms += "1";
     }
 
 }   // end of writeAlarmStatusString
@@ -182,7 +183,9 @@ void writeAlarmStatusString() {
 void readLimitDataFromEEPROM() {
 
     // initialize the struct from the EEPROM
-    EEPROM.get(0, AlarmLimits);
+    EEPROM.get(10, AlarmLimits.version);
+    EEPROM.get(20, AlarmLimits.tempAlarmLowLimit);
+    EEPROM.get(30, AlarmLimits.tempAlarmHighLimit);
 
     // test that data from EEPROM is valid.  If not, set some defaults.
     if(AlarmLimits.version != 0) {
@@ -203,7 +206,7 @@ int setAlarmLimits(String alarmLimits) {
     // Parse the comma delimited string from the app
     for(unsigned int i = 0; i < alarmLimits.length(); i++) {
         if (alarmLimits.charAt(i) == ',') {
-            lowTempAlarmLimit = alarmLimits.substring(0, i-1);
+            lowTempAlarmLimit = alarmLimits.substring(0, i);
             highTempAlarmLimit = alarmLimits.substring(i+1);
             break;  // we are done walking through the string
         }
@@ -215,7 +218,18 @@ int setAlarmLimits(String alarmLimits) {
     AlarmLimits.tempAlarmHighLimit = (int16_t)(highTempAlarmLimit.toInt());    
 
     // write the struct to EEPROM
-    EEPROM.put(0, AlarmLimits);
+    EEPROM.put(10, AlarmLimits.version);
+    EEPROM.put(20, AlarmLimits.tempAlarmLowLimit);
+    EEPROM.put(30, AlarmLimits.tempAlarmHighLimit);
+
+    /***********************TESTING****************************/
+    String testStruct = String(AlarmLimits.version);
+    testStruct += ",";
+    testStruct += AlarmLimits.tempAlarmLowLimit;
+    testStruct += ",";
+    testStruct += AlarmLimits.tempAlarmHighLimit;
+    Particle.publish("The Struct Data", testStruct);
+    /***********************TESTING****************************/
 
     //  replace original data with the integer limits, as these are the real alarm limits
     lowTempAlarmLimit = String(AlarmLimits.tempAlarmLowLimit);
@@ -269,6 +283,15 @@ void setup() {
 
     // read the temp alarm limits from EEPROM into the struct and set the global variables
     void readLimitDataFromEEPROM(); 
+
+    /***********************TESTING****************************/
+    String testStruct = String(AlarmLimits.version);
+    testStruct += ",";
+    testStruct += AlarmLimits.tempAlarmLowLimit;
+    testStruct += ",";
+    testStruct += AlarmLimits.tempAlarmHighLimit;
+    Particle.publish("The Struct Data", testStruct);
+    /***********************TESTING****************************/
 
 }  // end of setup()
 
