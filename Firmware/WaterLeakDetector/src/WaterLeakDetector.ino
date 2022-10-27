@@ -115,6 +115,16 @@ Servo myservo;  // create servo object to control a servo
 WLDAlarmProcessor alarmer;  // create alarmer object to manage alarms
 
 // Globals
+
+    // This global structure holds the temperature alarm limits.  The limits are cloud accessible for reading 
+    //  via the cloud variable "currentAlarmLimits" by the app.  The alarm limites are set by the app via 
+    //  Particle.function() calls.  The latest values are stored in non-volitile EEPROM.
+struct {
+  uint8_t version = 0;
+  int16_t tempAlarmLowLimit = -1;
+  int16_t tempAlarmHighLimit = -1;
+} AlarmLimits;
+
 boolean ledState = false;   // D7 LED is used for indicating water level measurements
 
     // These globals are for Particle.variable() data for cloud access by the app.
@@ -126,16 +136,6 @@ String currentAlarms = "0,0,0"; // this string holds the high temp alarm, low te
                                 //  alarm.
 String lowTempAlarmLimit = "";    // this string holds the low temp alarm limit
 String highTempAlarmLimit = "";   // this string holds the high temp alarm limit
-
-    // This global structure holds the temperature alarm limits.  The limits are cloud accessible for reading 
-    //  via the cloud variable "currentAlarmLimits" by the app.  The alarm limites are set by the app via 
-    //  Particle.function() calls.  The latest values are stored in non-volitile EEPROM.
-struct {
-    uint8_t version;
-    int16_t tempAlarmLowLimit;
-    int16_t tempAlarmHighLimit;
-} AlarmLimits;
-
 
 struct {
     bool lowTempAlarm;
@@ -152,6 +152,47 @@ String dateTimeString(){
     String dateTime = Time.format(timeNow,TIME_FORMAT_DEFAULT) + " UTC";
     return dateTime;
 }   // end of dateTimeString()
+
+// cloud function to write alarm limits to the struct
+int writeValue(String data) {
+  for(int i = 0; i < data.length(); i++) {
+    if(data.charAt(i) == ',') {
+      AlarmLimits.tempAlarmLowLimit = (int16_t)(data.substring(0, i).toInt());
+      AlarmLimits.tempAlarmHighLimit = (int16_t)(data.substring(i+1).toInt());
+    }
+  }
+  EEPROMwrite();  // call function to write struct to the EEPROM
+  displayData();  // copy the struct data into the cloud variable string
+  return 0;
+}   // end of EEPROMwrite
+
+// function to store struct to EEPROM
+void EEPROMwrite() {
+  EEPROM.put(0, AlarmLimits);
+  return;
+}
+
+//Cloud function to fetch data from EEPROM into struct
+void EEPROMread() {
+  EEPROM.get(0, AlarmLimits);
+  if(AlarmLimits.version != 0) {  // EEPROM never written
+    // set some defaults
+    AlarmLimits.tempAlarmLowLimit = -460; // below absolute zero!
+    AlarmLimits.tempAlarmHighLimit = 1000;  // melts lead!
+  }
+
+  return;
+}   // end of EEPROMread()
+
+// Cloud function to read object data into a string
+void displayData() {
+//  dataValues = String(AlarmLimits.tempAlarmLowLimit);
+//  dataValues += ",";
+//  dataValues += String(AlarmLimits.tempAlarmHighLimit);
+  lowTempAlarmLimit = String(AlarmLimits.tempAlarmLowLimit);
+  highTempAlarmLimit = String(AlarmLimits.tempAlarmHighLimit);
+  return;
+}   // end of displayData()
 
 // write the cloud accessible variable string that contains the current alarms
 void writeAlarmStatusString() {
@@ -178,73 +219,11 @@ void writeAlarmStatusString() {
 
 }   // end of writeAlarmStatusString
 
-// The high and low temperature limits are stored in a struct in non-volitile simulated EEPROM.  
-//  This function reads the struct out of EEPROM and sets the global variable strings accordingly
-void readLimitDataFromEEPROM() {
-
-    // initialize the struct from the EEPROM
-    EEPROM.get(10, AlarmLimits.version);
-    EEPROM.get(11, AlarmLimits.tempAlarmLowLimit);
-    EEPROM.get(13, AlarmLimits.tempAlarmHighLimit);
-
-    // test that data from EEPROM is valid.  If not, set some defaults.
-    if(AlarmLimits.version != 0) {
-        AlarmLimits.tempAlarmLowLimit = 40;
-        AlarmLimits.tempAlarmHighLimit = 105;
-    }
-    
-    //  replace original data with the integer limits, as these are the real alarm limits
-    lowTempAlarmLimit = String(AlarmLimits.tempAlarmLowLimit);
-    highTempAlarmLimit = String(AlarmLimits.tempAlarmHighLimit); 
-
-}   // end of readLimitDataFromEEPROM() 
-
-// Cloud function to set the new temperature alarm limits and store as a struct into EEPROM
-//  argument is a string containing "lowTempAlarmLimit" comma "highTempAlarmLimit"
-int setAlarmLimits(String alarmLimits) {
-
-    // Parse the comma delimited string from the app
-    for(unsigned int i = 0; i < alarmLimits.length(); i++) {
-        if (alarmLimits.charAt(i) == ',') {
-            lowTempAlarmLimit = alarmLimits.substring(0, i);
-            highTempAlarmLimit = alarmLimits.substring(i+1);
-            break;  // we are done walking through the string
-        }
-    }
-
-    // load up the AlarmLimits struct
-    AlarmLimits.version = (uint8_t)0;
-    AlarmLimits.tempAlarmLowLimit = (int16_t)(lowTempAlarmLimit.toInt());
-    AlarmLimits.tempAlarmHighLimit = (int16_t)(highTempAlarmLimit.toInt());    
-
-    // write the struct to EEPROM
-    EEPROM.put(10, AlarmLimits.version);
-    EEPROM.put(11, AlarmLimits.tempAlarmLowLimit);
-    EEPROM.put(13, AlarmLimits.tempAlarmHighLimit);
-
-    /***********************TESTING****************************/
-    String testStruct = String(AlarmLimits.version);
-    testStruct += ",";
-    testStruct += AlarmLimits.tempAlarmLowLimit;
-    testStruct += ",";
-    testStruct += AlarmLimits.tempAlarmHighLimit;
-    Particle.publish("The Struct Data", testStruct);
-    /***********************TESTING****************************/
-
-    //  replace original data with the integer limits, as these are the real alarm limits
-    lowTempAlarmLimit = String(AlarmLimits.tempAlarmLowLimit);
-    highTempAlarmLimit = String(AlarmLimits.tempAlarmHighLimit); 
-
-    return 0;
-
-}   // end of setAlarmLimits()
-
 // Cloud function to send out a test alarm
 int testAlarm(String nothing) {
     alarmer.sendTestAlarm(); 
 
-    return 0;
-    
+    return 0;   
 }   // end of testAlarm
 
 
@@ -265,10 +244,10 @@ void setup() {
     Particle.variable("Temperature", temperature);
     Particle.variable("Humidity", humidity);
     Particle.variable("Alarms", currentAlarms);
-    Particle.variable("Low Temp Alarm Limit", lowTempAlarmLimit);
-    Particle.variable("High Temp Alarm Limit", highTempAlarmLimit);
+    Particle.variable("LowTempAlarmLimit", lowTempAlarmLimit);  
+    Particle.variable("HighTempAlarmLimit", highTempAlarmLimit);
 
-    Particle.function("Set Temp Alarm Limits", setAlarmLimits);
+    Particle.function("SetTempAlarmLimits", writeValue);
     Particle.function("Send a test alarm", testAlarm);
 
     // set the information global
@@ -282,17 +261,10 @@ void setup() {
 
 
     // read the temp alarm limits from EEPROM into the struct and set the global variables
-    void readLimitDataFromEEPROM(); 
-
-    /***********************TESTING****************************/
-    String testStruct = String(AlarmLimits.version);
-    testStruct += ",";
-    testStruct += AlarmLimits.tempAlarmLowLimit;
-    testStruct += ",";
-    testStruct += AlarmLimits.tempAlarmHighLimit;
-    Particle.publish("The Struct Data", testStruct);
-    /***********************TESTING****************************/
-
+    void EEPROMread();
+    delay(1000);
+    displayData();  // copy the alarm limits into the cloud variables
+    
 }  // end of setup()
 
 
