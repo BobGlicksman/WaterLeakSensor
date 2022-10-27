@@ -168,27 +168,12 @@ int writeValue(String data) {
 
 // function to store struct to EEPROM
 void EEPROMwrite() {
-  EEPROM.put(0, AlarmLimits);
+  EEPROM.put(100, AlarmLimits);
   return;
 }
 
-//Cloud function to fetch data from EEPROM into struct
-void EEPROMread() {
-  EEPROM.get(0, AlarmLimits);
-  if(AlarmLimits.version != 0) {  // EEPROM never written
-    // set some defaults
-    AlarmLimits.tempAlarmLowLimit = -460; // below absolute zero!
-    AlarmLimits.tempAlarmHighLimit = 1000;  // melts lead!
-  }
-
-  return;
-}   // end of EEPROMread()
-
 // Cloud function to read object data into a string
 void displayData() {
-//  dataValues = String(AlarmLimits.tempAlarmLowLimit);
-//  dataValues += ",";
-//  dataValues += String(AlarmLimits.tempAlarmHighLimit);
   lowTempAlarmLimit = String(AlarmLimits.tempAlarmLowLimit);
   highTempAlarmLimit = String(AlarmLimits.tempAlarmHighLimit);
   return;
@@ -259,12 +244,15 @@ void setup() {
     Alarms.highTempAlarm = false;
     Alarms.waterLeakAlarm = false;
 
-
     // read the temp alarm limits from EEPROM into the struct and set the global variables
-    void EEPROMread();
-    delay(1000);
-    displayData();  // copy the alarm limits into the cloud variables
-    
+    EEPROM.get(100, AlarmLimits);
+    if(AlarmLimits.version != 0) {  // EEPROM never written
+        // set some defaults
+        AlarmLimits.tempAlarmLowLimit = -460; // below absolute zero!
+        AlarmLimits.tempAlarmHighLimit = 1000;  // melts lead!
+    }
+    displayData();
+
 }  // end of setup()
 
 
@@ -277,7 +265,7 @@ void loop() {
     static boolean newData = false; // flag to indicate DHT11 has new data
     static boolean toggle = false;  // hold the reading of the toggle switch; false for humidity, true for temperature
     static boolean lastToggle = false;  // hold the previous reading of the toggle switch
-
+    static bool firstTimeRead = false;  // special handing for first time reading
     float currentTemp, currentHumidity;
 
     //  read the toggle switch position and set the boolean for type of display accordingly
@@ -328,34 +316,40 @@ void loop() {
             temperature = String(mg_smoothedTemp);
             humidity = String(mg_smoothedHumidity);
 
-            // test for low and high temperature alarms and set the flags
-            if(mg_smoothedTemp < lowTempAlarmLimit.toFloat()) { // we have a low temperature alarm
-                Alarms.lowTempAlarm = true; // set the low temperature alarm flag
-            } else {    // no low temperature alarm now
-                Alarms.lowTempAlarm = false; // set the low temperature alarm flag
-            }
+            if(firstTimeRead == true) {
+
+                // test for low and high temperature alarms and set the flags
+                if(mg_smoothedTemp < lowTempAlarmLimit.toFloat()) { // we have a low temperature alarm
+                    Alarms.lowTempAlarm = true; // set the low temperature alarm flag
+                } else {    // no low temperature alarm now
+                    Alarms.lowTempAlarm = false; // set the low temperature alarm flag
+                }
         
-            if(mg_smoothedTemp > highTempAlarmLimit.toFloat()) { // we have a high temperature alarm
-                Alarms.highTempAlarm = true; // set the high temperature alarm flag
-                alarmer.sendHighTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
-            } else {    // no high temperature alarm now
-                Alarms.highTempAlarm = false; // set the low temperature alarm flag
-            }
+                if(mg_smoothedTemp > highTempAlarmLimit.toFloat()) { // we have a high temperature alarm
+                    Alarms.highTempAlarm = true; // set the high temperature alarm flag
+                    alarmer.sendHighTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
+                } else {    // no high temperature alarm now
+                    Alarms.highTempAlarm = false; // set the low temperature alarm flag
+                }
 
-            // process the alarm flags to send or reset the alarms, as appropriate
-            if(Alarms.lowTempAlarm == true) {   // low temp alarm needs processing
-                alarmer.sendLowTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
-                alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
-            } else if(Alarms.highTempAlarm == true) {     // high temp alarm needs processing
-                alarmer.sendHighTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
-                alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future            
-            } else {    // not temp alarms, therefore both alarms need rearming
-                alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
-                alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future 
-            }
+                // process the alarm flags to send or reset the alarms, as appropriate
+                if(Alarms.lowTempAlarm == true) {   // low temp alarm needs processing
+                    alarmer.sendLowTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
+                    alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
+                } else if(Alarms.highTempAlarm == true) {     // high temp alarm needs processing
+                    alarmer.sendHighTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
+                    alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future            
+                } else {    // not temp alarms, therefore both alarms need rearming
+                    alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
+                    alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future 
+                }
 
-            // write out the current status of all alarms
-            writeAlarmStatusString();
+                // write out the current status of all alarms
+                writeAlarmStatusString();
+
+            } else {
+                firstTimeRead = true;
+            }
 
 	        newData = false; // don't publish/process results again until a new reading
         }
@@ -374,7 +368,9 @@ void loop() {
                 digitalWrite(LED_PIN, LOW);
             }
         }
+
     }
+
 
     // measure and test water level at pre-determined interval
     if(nbWaterMeasureInterval(20) == false) {  // 20 ms between sensor readings
