@@ -38,9 +38,15 @@
         sending an alarm.
 
 
-    author: Bob Glicksman, Jim Schrempp; 10/25/2022
+    author: Bob Glicksman, Jim Schrempp; 10/28/2022
 
     (c) 2017, 2021, 2022 Bob Glicksman and Jim Schrempp, Team Practical Projects
+
+20221028:  Version 2.01:  Added a flag to not send out alarms on the first temp/Rh reading, because
+    the DHT11 library gives a false reading the first time through.  This was a legacy bug which did
+    not impact anything because there were no alarms.  Now, we got a low temperature alarm when the
+    Photon rebooted, so this flag surpresses this bogus alarm.  Also formatted the temperature and 
+    humidiy strings for cloud publication (%4.1f).
 
 20221025:  Version 2.0:  Removed IFTTT and Blynk.  This version uses a custom built app (AI2) to read out
     the status of the WLD - temperature, humidity and alarms.  This version adds high and low temperature
@@ -236,7 +242,7 @@ void setup() {
     Particle.function("Send a test alarm", testAlarm);
 
     // set the information global
-    info = "Firmware Verison 2.0. Last reset at: ";
+    info = "Firmware Verison 2.01. Last reset at: ";
     info += dateTimeString();
 
     // clear out alarm structure
@@ -265,7 +271,7 @@ void loop() {
     static boolean newData = false; // flag to indicate DHT11 has new data
     static boolean toggle = false;  // hold the reading of the toggle switch; false for humidity, true for temperature
     static boolean lastToggle = false;  // hold the previous reading of the toggle switch
- //   static bool firstTimeRead = false;  // special handing for first time reading
+    static bool firstTimeRead = true;  // special handing for first time reading
     float currentTemp, currentHumidity;
 
     //  read the toggle switch position and set the boolean for type of display accordingly
@@ -313,8 +319,8 @@ void loop() {
 	        }
   
             // set the cloud temperature and humidity globals
-            temperature = String(mg_smoothedTemp);
-            humidity = String(mg_smoothedHumidity);
+            temperature = String::format("%4.1f", mg_smoothedTemp);
+            humidity = String::format("%4.1f", mg_smoothedHumidity);
 
 
 
@@ -332,20 +338,23 @@ void loop() {
                 Alarms.highTempAlarm = false; // set the low temperature alarm flag
             }
 
-            // process the alarm flags to send or reset the alarms, as appropriate
-            if(Alarms.lowTempAlarm == true) {   // low temp alarm needs processing
-                alarmer.sendLowTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
-                alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
-            } else if(Alarms.highTempAlarm == true) {     // high temp alarm needs processing
-                alarmer.sendHighTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
-                alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future            
-            } else {    // not temp alarms, therefore both alarms need rearming
-                alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
-                alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future 
-            }
+            if(firstTimeRead == false) {    // process alarms only after the first time through
 
-            // write out the current status of all alarms
-            writeAlarmStatusString();
+                // process the alarm flags to send or reset the alarms, as appropriate
+                if(Alarms.lowTempAlarm == true) {   // low temp alarm needs processing
+                    alarmer.sendLowTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
+                    alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
+                } else if(Alarms.highTempAlarm == true) {     // high temp alarm needs processing
+                    alarmer.sendHighTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
+                    alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future            
+                } else {    // not temp alarms, therefore both alarms need rearming
+                    alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
+                    alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future 
+                }
+
+            }
+            firstTimeRead = false;  // skipped the first reading, now allow alarms
+            writeAlarmStatusString();   // write out the current status of all alarms
 
 	        newData = false; // don't publish/process results again until a new reading
         }
