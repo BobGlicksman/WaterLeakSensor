@@ -265,7 +265,7 @@ void loop() {
     static boolean newData = false; // flag to indicate DHT11 has new data
     static boolean toggle = false;  // hold the reading of the toggle switch; false for humidity, true for temperature
     static boolean lastToggle = false;  // hold the previous reading of the toggle switch
-    static bool firstTimeRead = false;  // special handing for first time reading
+ //   static bool firstTimeRead = false;  // special handing for first time reading
     float currentTemp, currentHumidity;
 
     //  read the toggle switch position and set the boolean for type of display accordingly
@@ -316,40 +316,36 @@ void loop() {
             temperature = String(mg_smoothedTemp);
             humidity = String(mg_smoothedHumidity);
 
-            if(firstTimeRead == true) {
 
-                // test for low and high temperature alarms and set the flags
-                if(mg_smoothedTemp < lowTempAlarmLimit.toFloat()) { // we have a low temperature alarm
-                    Alarms.lowTempAlarm = true; // set the low temperature alarm flag
-                } else {    // no low temperature alarm now
-                    Alarms.lowTempAlarm = false; // set the low temperature alarm flag
-                }
-        
-                if(mg_smoothedTemp > highTempAlarmLimit.toFloat()) { // we have a high temperature alarm
-                    Alarms.highTempAlarm = true; // set the high temperature alarm flag
-                    alarmer.sendHighTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
-                } else {    // no high temperature alarm now
-                    Alarms.highTempAlarm = false; // set the low temperature alarm flag
-                }
 
-                // process the alarm flags to send or reset the alarms, as appropriate
-                if(Alarms.lowTempAlarm == true) {   // low temp alarm needs processing
-                    alarmer.sendLowTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
-                    alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
-                } else if(Alarms.highTempAlarm == true) {     // high temp alarm needs processing
-                    alarmer.sendHighTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
-                    alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future            
-                } else {    // not temp alarms, therefore both alarms need rearming
-                    alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
-                    alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future 
-                }
-
-                // write out the current status of all alarms
-                writeAlarmStatusString();
-
-            } else {
-                firstTimeRead = true;
+            // test for low and high temperature alarms and set the flags
+            if(mg_smoothedTemp < lowTempAlarmLimit.toFloat()) { // we have a low temperature alarm
+                Alarms.lowTempAlarm = true; // set the low temperature alarm flag
+            } else {    // no low temperature alarm now
+                Alarms.lowTempAlarm = false; // set the low temperature alarm flag
             }
+        
+            if(mg_smoothedTemp > highTempAlarmLimit.toFloat()) { // we have a high temperature alarm
+                Alarms.highTempAlarm = true; // set the high temperature alarm flag
+                alarmer.sendHighTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
+            } else {    // no high temperature alarm now
+                Alarms.highTempAlarm = false; // set the low temperature alarm flag
+            }
+
+            // process the alarm flags to send or reset the alarms, as appropriate
+            if(Alarms.lowTempAlarm == true) {   // low temp alarm needs processing
+                alarmer.sendLowTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
+                alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
+            } else if(Alarms.highTempAlarm == true) {     // high temp alarm needs processing
+                alarmer.sendHighTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
+                alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future            
+            } else {    // not temp alarms, therefore both alarms need rearming
+                alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
+                alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future 
+            }
+
+            // write out the current status of all alarms
+            writeAlarmStatusString();
 
 	        newData = false; // don't publish/process results again until a new reading
         }
