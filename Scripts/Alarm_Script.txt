@@ -7,7 +7,7 @@ function doPost(e) {
 }
 
 function sendAlarm(e) {
-  const targetBob = "4085068005@txt.att.net";
+  const targetBob = "<email for sms gateway goes here>";
 
   var ev = e.parameter.event;
   var eventTxt = e.parameter.data;
