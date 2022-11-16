@@ -38,18 +38,42 @@
         sending an alarm.
 
 
-    author: Bob Glicksman, Jim Schrempp; 06/03/2017
+    author: Bob Glicksman, Jim Schrempp; 10/28/2022
 
-    (c) 2017, 2021, Bob Glicksman and Jim Schrempp, Team Practical Projects
+    (c) 2017, 2021, 2022 Bob Glicksman and Jim Schrempp, Team Practical Projects
+
+20221028:  Version 2.01:  Added a flag to not send out alarms on the first temp/Rh reading, because
+    the DHT11 library gives a false reading the first time through.  This was a legacy bug which did
+    not impact anything because there were no alarms.  Now, we got a low temperature alarm when the
+    Photon rebooted, so this flag surpresses this bogus alarm.  Also formatted the temperature and 
+    humidiy strings for cloud publication (%4.1f).
+
+20221025:  Version 2.0:  Removed IFTTT and Blynk.  This version uses a custom built app (AI2) to read out
+    the status of the WLD - temperature, humidity and alarms.  This version adds high and low temperature
+    alarms to the previous water leak alarm.  This version uses an instance of the included WLDAlarmProcessor
+    class to manage the three alarms.  Alarms are implemented as SMS text messages to the user's mobile
+    phone, via Particle.publish() from the WLDAlarmProcessor instance.  Each such publication triggers
+    a webhook in the Particle cloud to POST the alarm event to a Google Apps Script.  The script, in turn,
+    sends an email to the user's mobile carrier SMS gateway, resulting in an SMS text to the user's mobile
+    phone.  More information about this process can be found at:
+    https://github.com/TeamPracticalProjects/Connectivity_Tools_with_Particle_Devices
+    
+    This version of the WLD firmware uses the same logic as earlier versions
+    to detect and clear leak conditions and to average the temperature and humidity reading for the purposes
+    of display, reporting, and detecting/clearing alarms.  The instance of the WLDAlarmProcessor class manages
+    alarm holdoffs so that this firmware does not have to manage alarm states.  Rather, when this firmware
+    detects an alarm condition, it calls the appropriate object method and when it determines that an alarm
+    condition does not exist, it calls a re-arm method for that alarm.  The object manages alarm holdoffs so that
+    any persistant alarm only alarms the user.
+
+    Manual display of temperature/humidity (via the servo meter) and alarm/mute functionality are unchanged from
+    earlier version of the WLD.
 
 20210320:  Commented out Particle.publish() of temp and humidity b/c of Particles new pricing policy
 20170530a: Added Blynk application notification of water detection with Blynk Terminal and LED.
 ***********************************************************************************************************/
-//#define IFTTT_NOTIFY    // comment out if IFTTT alarm notification is not desired
-#define BLYNK_NOTIFY    // comment out if you do not want Blynk to be active
-
 #include <PietteTech_DHT.h> // non-blocking library for DHT11
-#include <blynk.h>  // Blynk library
+#include <WLDAlarmProcessor.h>  // the alarm processor class
 
 // Constants and definitions
 #define DHTTYPE  DHT11              // Sensor type DHT11/21/22/AM2301/AM2302
@@ -64,7 +88,6 @@ const int TOGGLE_PIN = D1;               // pin for temperature/humidity toggle 
 const int SERVO_PIN = A5;                // servo pin
 #define DHT_SAMPLE_INTERVAL   4000  // Sample every 4 seconds
 #define PARTICLE_PUBLISH_INTERVAL 60000 // Publish values every 60 seconds
-#define SECOND_NOTIFY_DELAY 30000  // the second alarm notification comes 30 seconds after the first notification
 const float WATER_LEVEL_THRESHOLD = 0.5;    // 0.5 volts or higher on either sensor triggers alarm
 
 // servo calibration values
@@ -95,96 +118,105 @@ float mg_smoothedTemp = 0.0, mg_smoothedHumidity = 0.0; // smoothed for the disp
 // Lib instantiate
 PietteTech_DHT DHT(DHTPIN, DHTTYPE);    // create DHT object to read temp and humidity
 Servo myservo;  // create servo object to control a servo
+WLDAlarmProcessor alarmer;  // create alarmer object to manage alarms
 
-#ifdef BLYNK_NOTIFY
-//blynk
-#include "blynk.h"
+// Globals
 
-char auth[] = "REPLACE THIS WITH YOUR BLYNK ACCESS TOKEN";
+    // This global structure holds the temperature alarm limits.  The limits are cloud accessible for reading 
+    //  via the cloud variable "currentAlarmLimits" by the app.  The alarm limites are set by the app via 
+    //  Particle.function() calls.  The latest values are stored in non-volitile EEPROM.
+struct {
+  uint8_t version = 0;
+  int16_t tempAlarmLowLimit = -1;
+  int16_t tempAlarmHighLimit = -1;
+} AlarmLimits;
 
-#define BLYNK_VPIN_HUMIDITY V5
-#define BLYNK_VPIN_TEMPERATURE V7
-#define BLYNK_VPIN_ALARM V6
-#define BLYNK_VPIN_TERMINAL V4
+boolean ledState = false;   // D7 LED is used for indicating water level measurements
 
-WidgetLED blynkLED1(BLYNK_VPIN_ALARM);
+    // These globals are for Particle.variable() data for cloud access by the app.
+String info = "";   // this string will hold the firmware version number and the last reset time.
+String temperature = "";   // this string will hold the currently averaged temperature
+String humidity = "";   // this string will hold the currently averaged humidity
+String currentAlarms = "0,0,0"; // this string holds the high temp alarm, low temp alarm, leak alarm
+                                //  in a comma separated format. 0 is no alarm, any other number is an
+                                //  alarm.
+String lowTempAlarmLimit = "";    // this string holds the low temp alarm limit
+String highTempAlarmLimit = "";   // this string holds the high temp alarm limit
 
+struct {
+    bool lowTempAlarm;
+    bool highTempAlarm;
+    bool waterLeakAlarm;
+} Alarms;
 
-// These functions are called by Blynk application widgets to get the value of
-// a "Virtual Pin"
-BLYNK_READ(BLYNK_VPIN_HUMIDITY)
-{
-    Blynk.virtualWrite(BLYNK_VPIN_HUMIDITY, mg_smoothedHumidity);
-}
-
-BLYNK_READ(BLYNK_VPIN_TEMPERATURE)
-{
-    Blynk.virtualWrite(BLYNK_VPIN_TEMPERATURE, mg_smoothedTemp);
-}
-
-
-#endif
 
 // Utility functions
 
+// create a string of the current date-time in UTC
 String dateTimeString(){
     time_t timeNow = Time.now();
     String dateTime = Time.format(timeNow,TIME_FORMAT_DEFAULT) + " UTC";
     return dateTime;
-}
+}   // end of dateTimeString()
 
-// We leave the method calls so that we don't have to ifdef every place it might be
-// called in the code.
-void blynkRaiseAlarm()
-{
-#ifdef BLYNK_NOTIFY
-    static int notifyCount = 0;
-    notifyCount++;
-    String blynkWarning = "WARNING: Water leak detected (" + String(notifyCount) + ") ";
-    Blynk.notify(blynkWarning);
-
-    blynkWriteTerminal(blynkWarning);
-    blynkWriteTerminal(dateTimeString() + "\r\n");
-#endif
-}
-
-void blynkWaterDetected(boolean detected)
-{
-#ifdef BLYNK_NOTIFY
-    static boolean lastState = false;
-    
-    if(detected != lastState) { // publish only on a change of detected state
-    
-        if (detected) {
-            blynkLED1.on();
-        } else  {
-            blynkLED1.off();
-        }
-        lastState = detected;
+// cloud function to write alarm limits to the struct
+int writeValue(String data) {
+  for(int i = 0; i < data.length(); i++) {
+    if(data.charAt(i) == ',') {
+      AlarmLimits.tempAlarmLowLimit = (int16_t)(data.substring(0, i).toInt());
+      AlarmLimits.tempAlarmHighLimit = (int16_t)(data.substring(i+1).toInt());
     }
-#endif
+  }
+  EEPROMwrite();  // call function to write struct to the EEPROM
+  displayData();  // copy the struct data into the cloud variable string
+  return 0;
+}   // end of EEPROMwrite
+
+// function to store struct to EEPROM
+void EEPROMwrite() {
+  EEPROM.put(100, AlarmLimits);
+  return;
 }
 
-void blynkReportRestart()
-{
-#ifdef BLYNK_NOTIFY
-    blynkWriteTerminal("---------\r\n");
-    blynkWriteTerminal("WLD restarted: ");
-    blynkWriteTerminal(dateTimeString() + "\r\n");
-#endif
-}
+// Cloud function to read object data into a string
+void displayData() {
+  lowTempAlarmLimit = String(AlarmLimits.tempAlarmLowLimit);
+  highTempAlarmLimit = String(AlarmLimits.tempAlarmHighLimit);
+  return;
+}   // end of displayData()
 
+// write the cloud accessible variable string that contains the current alarms
+void writeAlarmStatusString() {
+    currentAlarms = "";
+    if(Alarms.lowTempAlarm == false) {
+        currentAlarms += "0";
+    } else {
+        currentAlarms += "1";
+    }
+    currentAlarms += ",";
 
-void blynkWriteTerminal(String msg)
-{
-#ifdef BLYNK_NOTIFY
-    Blynk.virtualWrite(BLYNK_VPIN_TERMINAL,msg);
-#endif
-}
+    if(Alarms.highTempAlarm == false) {
+        currentAlarms += "0";
+    } else {
+        currentAlarms += "1";
+    }
+    currentAlarms += ",";  
 
+    if(Alarms.waterLeakAlarm == false) {
+        currentAlarms += "0";
+    } else {
+        currentAlarms += "1";
+    }
 
-// Globals
-boolean ledState = false;   // D7 LED is used for indicating water level measurements
+}   // end of writeAlarmStatusString
+
+// Cloud function to send out a test alarm
+int testAlarm(String nothing) {
+    alarmer.sendTestAlarm(); 
+
+    return 0;   
+}   // end of testAlarm
+
 
 // setup()
 void setup() {
@@ -194,42 +226,53 @@ void setup() {
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(TOGGLE_PIN, INPUT_PULLUP);  // toggle switch uses an internal pullup
     myservo.attach(SERVO_PIN);  // attaches to the servo object
+
     DHT.begin();
-    
-#ifdef BLYNK_NOTIFY
-    Blynk.begin(auth);
-    blynkReportRestart();
-    blynkLED1.off();
-#endif
+    alarmer.begin();
+
+    // declare Cloud variables and functions
+    Particle.variable("Info", info);
+    Particle.variable("Temperature", temperature);
+    Particle.variable("Humidity", humidity);
+    Particle.variable("Alarms", currentAlarms);
+    Particle.variable("LowTempAlarmLimit", lowTempAlarmLimit);  
+    Particle.variable("HighTempAlarmLimit", highTempAlarmLimit);
+
+    Particle.function("SetTempAlarmLimits", writeValue);
+    Particle.function("Send a test alarm", testAlarm);
+
+    // set the information global
+    info = "Firmware Verison 2.01. Last reset at: ";
+    info += dateTimeString();
+
+    // clear out alarm structure
+    Alarms.lowTempAlarm = false;
+    Alarms.highTempAlarm = false;
+    Alarms.waterLeakAlarm = false;
+
+    // read the temp alarm limits from EEPROM into the struct and set the global variables
+    EEPROM.get(100, AlarmLimits);
+    if(AlarmLimits.version != 0) {  // EEPROM never written
+        // set some defaults
+        AlarmLimits.tempAlarmLowLimit = -460; // below absolute zero!
+        AlarmLimits.tempAlarmHighLimit = 1000;  // melts lead!
+    }
+    displayData();
 
 }  // end of setup()
+
 
 // loop()
 void loop() {
     static boolean mute = false;  // set to true to mute the audible alarm
     static boolean indicator = false;  // set to true to flash the indicator
     static boolean alarm = false;   // set to true to sound the alarm
-    static boolean previousAlarmState = false;  // used to detect a new alarm
     static unsigned long lastReadTime = 0UL;    // DHT 11 reading time
-    static unsigned long lastPublishTime = 0UL;  // Published particle event time
     static boolean newData = false; // flag to indicate DHT11 has new data
     static boolean toggle = false;  // hold the reading of the toggle switch; false for humidity, true for temperature
     static boolean lastToggle = false;  // hold the previous reading of the toggle switch
-    static boolean firstNotification = false;  // indicator to use for a second alarm notification
-   	static unsigned long firstNotifyTime;	// record time of first notification to time the second one
-
-    // Non-blocking read of DHT11 data and publish and display it
+    static bool firstTimeRead = true;  // special handing for first time reading
     float currentTemp, currentHumidity;
-
-#ifdef BLYNK_NOTIFY
-    Blynk.run();
-#endif
-
-    static boolean onceUponRestart = true;
-    if (onceUponRestart){
-        onceUponRestart = false;
-
-    }
 
     //  read the toggle switch position and set the boolean for type of display accordingly
     if(digitalRead(TOGGLE_PIN) == LOW)  {   // indicates a temperature reading
@@ -248,35 +291,75 @@ void loop() {
         }
     }
 
+    // Non-blocking read of DHT11 data and publish and display it
     int sensorStatus = readDHT(false);  // refresh the sensor status but don't start a new reading
 
 	if(sensorStatus != ACQUIRING) {
-      if(newData == true) { // we have new data
-        currentTemp = DHT.getFahrenheit();
-        currentHumidity = DHT.getHumidity();
+        if(newData == true) { // we have new data
+            currentTemp = DHT.getFahrenheit();
+            currentHumidity = DHT.getHumidity();
 
-        // Smooth the readings for display
-        if (mg_smoothedTemp < 10) {   // first time init
-            mg_smoothedTemp = currentTemp;
+            // Smooth the readings for display
+            if (mg_smoothedTemp < 10) {   // first time init
+                mg_smoothedTemp = currentTemp;
+            }
+            if (mg_smoothedHumidity < 10){  // first time init
+                mg_smoothedHumidity = currentHumidity;
+            }
+            
+            // 10 point moving average
+            mg_smoothedTemp =  (0.9 * mg_smoothedTemp) +  (0.1 * currentTemp);
+            mg_smoothedHumidity =  (0.9 * mg_smoothedHumidity) +  (0.1 * currentHumidity);
+
+	        // set temperature or humidiy on the servo meter
+	        if(toggle == true)  {   // temperature reading called for
+	            meterTemp(mg_smoothedTemp);
+	        }  else  {  // humidity reading called for
+	         meterHumidity(mg_smoothedHumidity);
+	        }
+  
+            // set the cloud temperature and humidity globals
+            temperature = String::format("%4.1f", mg_smoothedTemp);
+            humidity = String::format("%4.1f", mg_smoothedHumidity);
+
+
+
+            // test for low and high temperature alarms and set the flags
+            if(mg_smoothedTemp < lowTempAlarmLimit.toFloat()) { // we have a low temperature alarm
+                Alarms.lowTempAlarm = true; // set the low temperature alarm flag
+            } else {    // no low temperature alarm now
+                Alarms.lowTempAlarm = false; // set the low temperature alarm flag
+            }
+        
+            if(mg_smoothedTemp > highTempAlarmLimit.toFloat()) { // we have a high temperature alarm
+                Alarms.highTempAlarm = true; // set the high temperature alarm flag
+                alarmer.sendHighTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
+            } else {    // no high temperature alarm now
+                Alarms.highTempAlarm = false; // set the low temperature alarm flag
+            }
+
+            if(firstTimeRead == false) {    // process alarms only after the first time through
+
+                // process the alarm flags to send or reset the alarms, as appropriate
+                if(Alarms.lowTempAlarm == true) {   // low temp alarm needs processing
+                    alarmer.sendLowTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
+                    alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
+                } else if(Alarms.highTempAlarm == true) {     // high temp alarm needs processing
+                    alarmer.sendHighTemperatureAlarm(mg_smoothedTemp); // send out the alarm for processing
+                    alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future            
+                } else {    // not temp alarms, therefore both alarms need rearming
+                    alarmer.armHighTempAlarm();  // reset the alarm processing for a new alarm in the future
+                    alarmer.armLowTempAlarm();  // reset the alarm processing for a new alarm in the future 
+                }
+
+            }
+            firstTimeRead = false;  // skipped the first reading, now allow alarms
+            writeAlarmStatusString();   // write out the current status of all alarms
+
+	        newData = false; // don't publish/process results again until a new reading
         }
-        if (mg_smoothedHumidity < 10){  // first time init
-            mg_smoothedHumidity = currentHumidity;
-        }
-        // 10 point moving average
-        mg_smoothedTemp =  (0.9 * mg_smoothedTemp) +  (0.1 * currentTemp);
-        mg_smoothedHumidity =  (0.9 * mg_smoothedHumidity) +  (0.1 * currentHumidity);
 
-	    // set temperature or humidiy on the servo meter
-	    if(toggle == true)  {   // temperature reading called for
-	        meterTemp(mg_smoothedTemp);
-	    }  else  {  // humidity reading called for
-	        meterHumidity(mg_smoothedHumidity);
-	    }
-
-	    newData = false; // don't publish results again until a new reading
-      }
-
-      if((diff(millis(), lastReadTime)) >= DHT_SAMPLE_INTERVAL) { // we are ready for a new reading
+        if((diff(millis(), lastReadTime)) >= DHT_SAMPLE_INTERVAL) { // we are ready for a new reading
           readDHT(true);  // start a new reading
           newData = true; // set flag to indicate that a new reading will result
           lastReadTime = millis();
@@ -289,16 +372,8 @@ void loop() {
             } else {
                 digitalWrite(LED_PIN, LOW);
             }
-
         }
-    }
 
-    if((diff(millis(), lastPublishTime)) >= PARTICLE_PUBLISH_INTERVAL)  // we should publish our values
-    {
-        lastPublishTime = millis();
-        // publish Smoothed temperature and humidity readings to the cloud
-//        Particle.publish("Humidity Smoothed (%)", String(mg_smoothedHumidity));
-//        Particle.publish("Temperature Smoothed (oF)", String(mg_smoothedTemp));
     }
 
 
@@ -317,7 +392,11 @@ void loop() {
         // integrate and threshold measurement for alarm
         if(alarmIntegrator(waterSensorVoltageA, waterSensorVoltageB) == true) {
             indicator = true;
-            blynkWaterDetected(true);
+            // process a water leak detection
+            Alarms.waterLeakAlarm = true;   // set the alarm flag
+            alarmer.sendWaterLeakAlarm();   // send the alarm for processing
+            writeAlarmStatusString();   // update the alarm status global string
+
             if(mute == false) {
                 alarm = true;
             } else {
@@ -325,37 +404,15 @@ void loop() {
             }
         } else {
             indicator = false;
-            blynkWaterDetected(false);
+            // no water leak alarm so process and rearm
+            Alarms.waterLeakAlarm = false;   // set the alarm flag
+            alarmer.armLeakAlarm();   // send the alarm for processing
+            writeAlarmStatusString();   // update the alarm status global string
+
             alarm = false;
             mute = false;   // reset alarm muting
         }
-
-        #ifdef IFTTT_NOTIFY
-            //  For IFTTT Notification: test if new alarm and publish it
-           if((indicator == true) && (indicator != previousAlarmState)) {
-             Particle.publish("Water leak alarm", Time.timeStr(Time.now()) + " Z");
-           }
-         #endif
-
-    	// If we have a new alarm, then send a Blynk notification
- 		if((indicator == true) && (indicator != previousAlarmState)) {
-        	blynkRaiseAlarm();
-
-        	// set conditions for the second alarm notification
-        	firstNotification = true;
-        	firstNotifyTime = millis();
-    	}
-
-    	previousAlarmState = indicator; // update old alarm state to present state
     }
-
-
-    // process the second alarm notification after the first alarm notification
-    if( (firstNotification == true) && (diff(millis(), firstNotifyTime) >= SECOND_NOTIFY_DELAY) )  {
-        blynkRaiseAlarm();
-        firstNotification = false;
-    }
-
 
     // process the mute pushbutton
     if(readPushButton() == true) {
@@ -366,7 +423,7 @@ void loop() {
     // refresh non-blocking alarm & indicator status
     nbFlashIndicator(indicator);
     nbSoundAlarm(alarm);
-
+    
 } // end of loop()
 
 /* alarmIntegrator():  function that thresholds sensor voltage readings and integrates the values.
@@ -376,8 +433,7 @@ void loop() {
         the alarm value as a boolean.  The alarm value is set after 5 thresholds are accumulated
             for either sensor and stays set until 5 under-thresholds are accumulated for both sensors
 */
-
-boolean alarmIntegrator(float sensorAReading, float sensorBReading) {
+bool alarmIntegrator(float sensorAReading, float sensorBReading) {
     const byte ALARM_LIMIT = 5;     // 5 thresholds are required to trigger an alarm, then 5 under thresholds
                                     //  are required to reset the alarm condition.
 
