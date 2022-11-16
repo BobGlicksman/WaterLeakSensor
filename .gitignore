@@ -55,3 +55,7 @@ Temporary Items
 # CorelDraw backups
 backup_*.*
 
+Firmware/WaterLeakDetector/target/*
+Firmware/WaterLeakDetector/lib/Arduino/*
+Firmware/WaterLeakDetector/lib/blynk/*
+Firmware/WaterLeakDetector/.vscode/*
