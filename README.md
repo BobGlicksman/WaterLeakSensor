@@ -20,3 +20,4 @@ Begin with the file WLD Read Me First.pdf
 
 ![front view completed project](Photos/Finished%20pointerB.JPG?raw=true "Completed Project")
 
+![app screen](Photos/App_screenshot.jpg?raw=true "App Screen")
