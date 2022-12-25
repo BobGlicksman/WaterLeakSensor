@@ -1,0 +1,51 @@
+function doGet(e) {
+  sendAlarm(e);
+}
+
+function doPost(e) { 
+  sendAlarm(e);
+}
+
+function sendAlarm(e) {
+  const targetBob = "<email for sms gateway goes here>";
+
+  var ev = e.parameter.event;
+  var eventTxt = e.parameter.data;
+
+  var subject = generateSubjText(ev);
+  var tmStamp = computeLocalTime();
+  var body = eventTxt + " at: " + tmStamp;
+
+  MailApp.sendEmail(targetBob, subject, body);
+}
+
+function generateSubjText(ev) {
+  switch(ev) {
+    case "WLDAlarmLowTemp":
+      return "WDL ALARM: Low Temperature Detected";
+      break;
+      
+    case "WLDAlarmHighTemp":
+      return "WDL ALARM: High Temperature Detected";
+      break;
+      
+    case "WLDAlarmWaterLeak":
+      return "WDL ALARM: Water Leak Detected";
+      break;
+      
+    case "WLDAlarmTest":
+      return "WSM ALARM: TEST";
+      break;
+      
+    default:
+      return ev;
+  }
+} 
+
+function computeLocalTime() {
+  
+  var formattedDate = Utilities.formatDate(new Date(), "America/Los_Angeles", "yyyy-MM-dd' 'HH:mm:ss");
+  return formattedDate;
+  
+}  
+
